@@ -24,6 +24,10 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.Tags;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
+import software.bernie.geckolib.animatable.GeoEntity;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.util.GeckoLibUtil;
 
 /**
  * Obsidian Gauntlet grappling hook (right-click, 80 blocks).
@@ -32,7 +36,8 @@ import org.joml.Vector3f;
  *           hooked a mob    -> the mob is yanked to the player (bosses: the player is reeled to them instead)
  * Right-click again or sneak to let go. The owner's own client applies the reel-in motion so it feels instant.
  */
-public class GrappleHookEntity extends Entity {
+public class GrappleHookEntity extends Entity implements GeoEntity {
+    private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
     public static final double RANGE = 80.0, FLY_SPEED = 6.0;
     private static final int MAX_PULL = 70;
 
@@ -178,4 +183,7 @@ public class GrappleHookEntity extends Entity {
         sl.playSound(null, owner.blockPosition(), SoundEvents.CHAIN_HIT, SoundSource.PLAYERS, 1.0f, 0.7f);
         Vfx.burst(sl, Vfx.purpleSpark(), position(), 14, 0.3, 0.25);
     }
+
+    @Override public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {}
+    @Override public AnimatableInstanceCache getAnimatableInstanceCache() { return cache; }
 }

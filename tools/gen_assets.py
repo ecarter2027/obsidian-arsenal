@@ -1770,3 +1770,31 @@ _l = json.load(open(f"{A}/lang/en_us.json"))
 _l[f"tooltip.{MOD}.gauntlet.grapple"] = "Right-click: grappling hook (80 blocks), right-click again to let go"
 _l[f"entity.{MOD}.grapple_hook"] = "Grappling Hook"
 w(f"{A}/lang/en_us.json", _l)
+
+# =====================================================================================================
+# v13: grappling hook 3D model - obsidian claw (rendered with the vanilla obsidian texture, 16x16 box UV).
+#      Tip at the origin pointing -Z (the direction of travel); shaft + eyelet run back along +Z to the chain.
+# =====================================================================================================
+hk = [bone("root", (0, 0, 0))]
+hook_cubes = [
+    cube((-0.75, -0.75, -1.4), (1.5, 1.5, 2.2), (0, 0), (0, 0, 45), (0, 0, 0)),     # diamond spear point
+    cube((-1.3, -1.3, 0.6), (2.6, 2.6, 2.4), (0, 0)),                                 # head
+    cube((-0.75, -0.75, 3.0), (1.5, 1.5, 4.6), (0, 0)),                               # shaft
+    cube((-1.1, -1.1, 7.6), (2.2, 2.2, 0.8), (0, 0)),                                 # eyelet the chain hooks into
+]
+hk.append(bone("hook", (0, 0, 0), hook_cubes, "root"))
+# four barbed prongs flaring backwards off the head (file-space rotations: +x prong y+, +y prong x+)
+prongs = [
+    cube((1.0, -0.5, 1.2), (1.0, 1.0, 4.2), (0, 0), (0, 32, 0), (1.5, 0, 1.2)),
+    cube((-2.0, -0.5, 1.2), (1.0, 1.0, 4.2), (0, 0), (0, -32, 0), (-1.5, 0, 1.2)),
+    cube((-0.5, 1.0, 1.2), (1.0, 1.0, 4.2), (0, 0), (32, 0, 0), (0, 1.5, 1.2)),
+    cube((-0.5, -2.0, 1.2), (1.0, 1.0, 4.2), (0, 0), (-32, 0, 0), (0, -1.5, 1.2)),
+]
+hk.append(bone("prongs", (0, 0, 1.2), prongs, "hook"))
+_g = geo("grapple_hook", hk, 2)
+_g["minecraft:geometry"][0]["description"]["texture_width"] = 16
+_g["minecraft:geometry"][0]["description"]["texture_height"] = 16
+w(f"{G}/entity/grapple_hook.geo.json", _g)
+w(f"{AN}/entity/grapple_hook.animation.json", {"format_version": "1.8.0", "animations": {
+    "animation.grapple_hook.idle": {"animation_length": 1.0, "loop": True, "bones": {}}}})
+print("v13 grapple hook model")
