@@ -42,6 +42,7 @@ public class ClientModEvents {
         e.registerEntityRenderer(ModEntities.HELLFIRE_STREAM.get(), HellfireStreamRenderer::new);
         e.registerEntityRenderer(ModEntities.PLASMA_BEAM.get(), PlasmaBeamRenderer::new);
         e.registerEntityRenderer(ModEntities.BLACK_HOLE.get(), BlackHoleRenderer::new);
+        e.registerEntityRenderer(ModEntities.GRAPPLE_HOOK.get(), com.obsidianarsenal.client.render.GrappleHookRenderer::new);
     }
 
     @SubscribeEvent

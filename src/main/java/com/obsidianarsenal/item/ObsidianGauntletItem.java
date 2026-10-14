@@ -3,6 +3,7 @@ package com.obsidianarsenal.item;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import com.obsidianarsenal.client.render.GauntletRenderer;
+import com.obsidianarsenal.entity.GrappleHookEntity;
 import com.obsidianarsenal.registry.ModAttributes;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
@@ -124,7 +125,25 @@ public class ObsidianGauntletItem extends DiggerItem implements GeoItem {
             toggleMode(player, stack);
             return InteractionResultHolder.sidedSuccess(stack, level.isClientSide);
         }
-        return InteractionResultHolder.pass(stack);
+        // grappling hook: right-click fires (80 blocks), right-click again lets go
+        if (level instanceof ServerLevel sl) {
+            GrappleHookEntity existing = activeHook(sl, player);
+            if (existing != null) existing.release();
+            else {
+                GrappleHookEntity hook = GrappleHookEntity.fire(sl, player);
+                player.getPersistentData().putInt(HOOK_TAG, hook.getId());
+                player.getCooldowns().addCooldown(this, 8);
+            }
+        }
+        return InteractionResultHolder.sidedSuccess(stack, level.isClientSide);
+    }
+
+    private static final String HOOK_TAG = "OA_GrappleHook";
+
+    @Nullable
+    private static GrappleHookEntity activeHook(ServerLevel sl, Player player) {
+        if (!player.getPersistentData().contains(HOOK_TAG)) return null;
+        return sl.getEntity(player.getPersistentData().getInt(HOOK_TAG)) instanceof GrappleHookEntity h && h.isAlive() && h.getOwner() == player ? h : null;
     }
 
     private void toggleMode(Player player, ItemStack stack) {
@@ -144,6 +163,7 @@ public class ObsidianGauntletItem extends DiggerItem implements GeoItem {
         tooltip.add(Component.translatable(c ? "tooltip.obsidian_arsenal.gauntlet.mode_combat" : "tooltip.obsidian_arsenal.gauntlet.mode_mining")
                 .withStyle(c ? ChatFormatting.DARK_RED : ChatFormatting.LIGHT_PURPLE));
         tooltip.add(Component.translatable("tooltip.obsidian_arsenal.gauntlet.toggle").withStyle(ChatFormatting.GRAY));
+        tooltip.add(Component.translatable("tooltip.obsidian_arsenal.gauntlet.grapple").withStyle(ChatFormatting.GRAY));
         tooltip.add(Component.translatable(c ? "tooltip.obsidian_arsenal.gauntlet.combat" : "tooltip.obsidian_arsenal.gauntlet.mining").withStyle(ChatFormatting.GRAY));
     }
 

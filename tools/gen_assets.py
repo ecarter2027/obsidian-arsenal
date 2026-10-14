@@ -1764,3 +1764,9 @@ for name in ("obsidian_gauntlet", "obsidian_helmet", "obsidian_chestplate", "obs
         "requirements": [["has_obsidian", "has_the_recipe"]],
         "rewards": {"recipes": [rid]}})
 print("v11 recipe advancements")
+
+# v12: lang for the gauntlet grappling hook
+_l = json.load(open(f"{A}/lang/en_us.json"))
+_l[f"tooltip.{MOD}.gauntlet.grapple"] = "Right-click: grappling hook (80 blocks), right-click again to let go"
+_l[f"entity.{MOD}.grapple_hook"] = "Grappling Hook"
+w(f"{A}/lang/en_us.json", _l)

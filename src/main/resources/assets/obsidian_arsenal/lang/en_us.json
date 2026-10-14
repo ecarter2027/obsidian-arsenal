@@ -90,5 +90,7 @@
  "death.attack.obsidian_arsenal.black_hole.item": "%1$s crossed the event horizon of %2$s's black hole using %3$s",
  "entity.obsidian_arsenal.plasma_beam": "Plasma Beam",
  "entity.obsidian_arsenal.black_hole": "Black Hole",
- "entity.obsidian_arsenal.hellfire_stream": "Hellfire Stream"
+ "entity.obsidian_arsenal.hellfire_stream": "Hellfire Stream",
+ "tooltip.obsidian_arsenal.gauntlet.grapple": "Right-click: grappling hook (80 blocks), right-click again to let go",
+ "entity.obsidian_arsenal.grapple_hook": "Grappling Hook"
 }

@@ -15,7 +15,7 @@ import net.minecraftforge.network.simple.SimpleChannel;
 import java.util.function.Supplier;
 
 public final class ModNetwork {
-    private static final String VERSION = "1";
+    private static final String VERSION = "2";
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             ObsidianArsenal.id("main"), () -> VERSION, VERSION::equals, VERSION::equals);
 
@@ -25,11 +25,28 @@ public final class ModNetwork {
         int id = 0;
         CHANNEL.registerMessage(id++, AttackC2S.class, AttackC2S::encode, AttackC2S::decode, AttackC2S::handle);
         CHANNEL.registerMessage(id++, PlayAnimS2C.class, PlayAnimS2C::encode, PlayAnimS2C::decode, PlayAnimS2C::handle);
+        CHANNEL.registerMessage(id++, CastGlowS2C.class, CastGlowS2C::encode, CastGlowS2C::decode, CastGlowS2C::handle);
     }
 
     /** Play a PlayerAnimator animation (assets/obsidian_arsenal/player_animation/*.json) on this player for everyone tracking them. */
     public static void playAnim(ServerPlayer player, String name) {
         CHANNEL.send(PacketDistributor.TRACKING_ENTITY_AND_SELF.with(() -> player), new PlayAnimS2C(player.getId(), name));
+    }
+
+    /** Tint this player's Glowing outline for `ticks` ticks on every client that can see them. */
+    public static void castGlow(ServerPlayer player, int rgb, int ticks) {
+        CHANNEL.send(PacketDistributor.TRACKING_ENTITY_AND_SELF.with(() -> player), new CastGlowS2C(player.getId(), rgb, ticks));
+    }
+
+    public static class CastGlowS2C {
+        private final int entityId, rgb, ticks;
+        public CastGlowS2C(int entityId, int rgb, int ticks) { this.entityId = entityId; this.rgb = rgb; this.ticks = ticks; }
+        public void encode(FriendlyByteBuf buf) { buf.writeVarInt(entityId); buf.writeInt(rgb); buf.writeVarInt(ticks); }
+        public static CastGlowS2C decode(FriendlyByteBuf buf) { return new CastGlowS2C(buf.readVarInt(), buf.readInt(), buf.readVarInt()); }
+        public void handle(Supplier<NetworkEvent.Context> ctx) {
+            ctx.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> com.obsidianarsenal.client.CastGlowClient.set(entityId, rgb, ticks)));
+            ctx.get().setPacketHandled(true);
+        }
     }
 
     public static class AttackC2S {

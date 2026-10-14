@@ -3,6 +3,7 @@ package com.obsidianarsenal.registry;
 import com.obsidianarsenal.ObsidianArsenal;
 import com.obsidianarsenal.entity.BlackHoleEntity;
 import com.obsidianarsenal.entity.ConstructEntity;
+import com.obsidianarsenal.entity.GrappleHookEntity;
 import com.obsidianarsenal.entity.PlasmaBeamEntity;
 import com.obsidianarsenal.entity.HellfireStreamEntity;
 import com.obsidianarsenal.entity.IndraArrowEntity;
@@ -55,4 +56,9 @@ public class ModEntities {
             EntityType.Builder.<BlackHoleEntity>of(BlackHoleEntity::new, MobCategory.MISC)
                     .sized(1.0f, 1.0f).clientTrackingRange(12).updateInterval(1).fireImmune().noSave()
                     .build(ObsidianArsenal.MODID + ":black_hole"));
+
+    public static final RegistryObject<EntityType<GrappleHookEntity>> GRAPPLE_HOOK = ENTITIES.register("grapple_hook", () ->
+            EntityType.Builder.<GrappleHookEntity>of(GrappleHookEntity::new, MobCategory.MISC)
+                    .sized(0.4f, 0.4f).clientTrackingRange(10).updateInterval(1).fireImmune().noSave()
+                    .build(ObsidianArsenal.MODID + ":grapple_hook"));
 }
