@@ -1,0 +1,17 @@
+{
+ "type": "minecraft:crafting_shaped",
+ "category": "equipment",
+ "pattern": [
+  "OOO",
+  "O O",
+  "O O"
+ ],
+ "key": {
+  "O": {
+   "item": "minecraft:obsidian"
+  }
+ },
+ "result": {
+  "item": "obsidian_arsenal:obsidian_leggings"
+ }
+}

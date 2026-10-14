@@ -1,0 +1,73 @@
+plugins {
+    id 'eclipse'
+    id 'idea'
+    id 'maven-publish'
+    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+}
+
+version = mod_version
+group = mod_group_id
+base { archivesName = mod_id }
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+minecraft {
+    mappings channel: 'official', version: minecraft_version
+    runs {
+        configureEach {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+            // Iron's Spells uses Mixins; required for dev runs.
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
+            mods { "${mod_id}" { source sourceSets.main } }
+        }
+        client {}
+        server { args '--nogui' }
+    }
+}
+
+repositories {
+    // Dependency jars live in ./libs (copied from your CurseForge instance / Modrinth by build.bat).
+    // ForgeGradle remaps them with fg.deobf, so these are the normal published mod jars.
+    flatDir { dir 'libs' }
+}
+
+dependencies {
+    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+
+    // ---- REQUIRED dependencies: this mod compiles against and calls all four directly ----
+    implementation fg.deobf("blank:geckolib-forge-${minecraft_version}:${geckolib_version}")
+    implementation fg.deobf("blank:player-animation-lib-forge:${playeranimator_version}")
+    implementation fg.deobf("blank:irons_spellbooks-${minecraft_version}:${irons_version}")
+    implementation fg.deobf("blank:aaa_particles-forge-${minecraft_version}:${aaa_particles_version}")
+
+    // Iron's Spells' own dependencies
+    implementation fg.deobf("blank:irons_lib-${minecraft_version}:${irons_lib_version}")
+    runtimeOnly fg.deobf("blank:curios-forge:${curios_version}")
+    runtimeOnly fg.deobf("blank:caelus-forge:${caelus_version}")
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    var replaceProperties = [
+        minecraft_version: minecraft_version, minecraft_version_range: minecraft_version_range,
+        forge_version: forge_version, forge_version_range: forge_version_range,
+        loader_version_range: loader_version_range,
+        mod_id: mod_id, mod_name: mod_name, mod_license: mod_license, mod_version: mod_version,
+        mod_authors: mod_authors, mod_description: mod_description,
+        geckolib_range: geckolib_range, playeranimator_range: playeranimator_range,
+        irons_range: irons_range, aaa_range: aaa_range,
+    ]
+    inputs.properties replaceProperties
+    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) { expand replaceProperties + [project: project] }
+}
+
+tasks.named('jar', Jar).configure {
+    manifest { attributes(['Specification-Title': mod_id, 'Specification-Vendor': mod_authors,
+        'Specification-Version': '1', 'Implementation-Title': project.name,
+        'Implementation-Version': project.jar.archiveVersion, 'Implementation-Vendor': mod_authors]) }
+    finalizedBy 'reobfJar'
+}
+
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }

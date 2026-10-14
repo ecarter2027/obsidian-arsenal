@@ -1,0 +1,35 @@
+{
+ "parent": "minecraft:recipes/root",
+ "criteria": {
+  "has_obsidian": {
+   "trigger": "minecraft:inventory_changed",
+   "conditions": {
+    "items": [
+     {
+      "items": [
+       "minecraft:obsidian",
+       "minecraft:crying_obsidian"
+      ]
+     }
+    ]
+   }
+  },
+  "has_the_recipe": {
+   "trigger": "minecraft:recipe_unlocked",
+   "conditions": {
+    "recipe": "obsidian_arsenal:obsidian_leggings"
+   }
+  }
+ },
+ "requirements": [
+  [
+   "has_obsidian",
+   "has_the_recipe"
+  ]
+ ],
+ "rewards": {
+  "recipes": [
+   "obsidian_arsenal:obsidian_leggings"
+  ]
+ }
+}

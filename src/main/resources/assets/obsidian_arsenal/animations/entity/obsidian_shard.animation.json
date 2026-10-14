@@ -1,0 +1,123 @@
+{
+ "format_version": "1.8.0",
+ "animations": {
+  "animation.obsidian_shard.rise": {
+   "animation_length": 0.4,
+   "bones": {
+    "root": {
+     "position": {
+      "0.0": [
+       0,
+       -56,
+       0
+      ],
+      "0.25": {
+       "vector": [
+        0,
+        4,
+        0
+       ],
+       "easing": "easeOutQuad"
+      },
+      "0.4": [
+       0,
+       0,
+       0
+      ]
+     }
+    }
+   }
+  },
+  "animation.obsidian_shard.idle": {
+   "animation_length": 1.5,
+   "loop": true,
+   "bones": {
+    "c1": {
+     "scale": {
+      "0.0": [
+       1,
+       1,
+       1
+      ],
+      "0.75": [
+       1.03,
+       1.0,
+       1.03
+      ],
+      "1.5": [
+       1,
+       1,
+       1
+      ]
+     }
+    }
+   }
+  },
+  "animation.obsidian_shard.sink": {
+   "animation_length": 0.5,
+   "bones": {
+    "root": {
+     "position": {
+      "0.0": [
+       0,
+       0,
+       0
+      ],
+      "0.5": {
+       "vector": [
+        0,
+        -60,
+        0
+       ],
+       "easing": "easeInQuad"
+      }
+     }
+    }
+   }
+  },
+  "animation.obsidian_shard.idle_1": {
+   "animation_length": 1.2,
+   "loop": true,
+   "bones": {
+    "c2": {
+     "rotation": {
+      "0.0": [
+       0,
+       0,
+       0
+      ],
+      "0.6": [
+       0,
+       6,
+       0
+      ],
+      "1.2": [
+       0,
+       0,
+       0
+      ]
+     }
+    },
+    "c3": {
+     "rotation": {
+      "0.0": [
+       0,
+       0,
+       0
+      ],
+      "0.6": [
+       0,
+       -6,
+       0
+      ],
+      "1.2": [
+       0,
+       0,
+       0
+      ]
+     }
+    }
+   }
+  }
+ }
+}

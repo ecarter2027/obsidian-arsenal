@@ -1,0 +1,69 @@
+{
+ "format_version": "1.8.0",
+ "animations": {
+  "animation.obsidian_storm_spike.rise": {
+   "animation_length": 0.35,
+   "bones": {
+    "root": {
+     "scale": {
+      "0.0": [
+       0.05,
+       0.05,
+       0.05
+      ],
+      "0.35": {
+       "vector": [
+        1,
+        1,
+        1
+       ],
+       "easing": "easeOutBack"
+      }
+     }
+    }
+   }
+  },
+  "animation.obsidian_storm_spike.idle": {
+   "animation_length": 0.6,
+   "loop": true,
+   "bones": {
+    "spike": {
+     "rotation": {
+      "0.0": [
+       0,
+       0,
+       0
+      ],
+      "0.6": [
+       0,
+       360,
+       0
+      ]
+     }
+    }
+   }
+  },
+  "animation.obsidian_storm_spike.sink": {
+   "animation_length": 0.5,
+   "bones": {
+    "root": {
+     "scale": {
+      "0.0": [
+       1,
+       1,
+       1
+      ],
+      "0.5": {
+       "vector": [
+        0.02,
+        0.02,
+        0.02
+       ],
+       "easing": "easeInQuad"
+      }
+     }
+    }
+   }
+  }
+ }
+}

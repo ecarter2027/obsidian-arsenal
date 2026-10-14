@@ -1,0 +1,86 @@
+{
+ "format_version": "1.8.0",
+ "animations": {
+  "animation.hell_column.rise": {
+   "animation_length": 0.35,
+   "bones": {
+    "root": {
+     "scale": {
+      "0.0": [
+       0.05,
+       0.05,
+       0.05
+      ],
+      "0.35": {
+       "vector": [
+        1,
+        1,
+        1
+       ],
+       "easing": "easeOutBack"
+      }
+     }
+    }
+   }
+  },
+  "animation.hell_column.idle": {
+   "animation_length": 1.0,
+   "loop": true,
+   "bones": {
+    "column": {
+     "rotation": {
+      "0.0": [
+       0,
+       0,
+       0
+      ],
+      "1.0": [
+       0,
+       360,
+       0
+      ]
+     },
+     "scale": {
+      "0.0": [
+       1,
+       1,
+       1
+      ],
+      "0.5": [
+       1.06,
+       1.03,
+       1.06
+      ],
+      "1.0": [
+       1,
+       1,
+       1
+      ]
+     }
+    }
+   }
+  },
+  "animation.hell_column.sink": {
+   "animation_length": 0.5,
+   "bones": {
+    "root": {
+     "scale": {
+      "0.0": [
+       1,
+       1,
+       1
+      ],
+      "0.5": {
+       "vector": [
+        0.02,
+        0.02,
+        0.02
+       ],
+       "easing": "easeInQuad"
+      }
+     }
+    }
+   }
+  }
+ }
+}
