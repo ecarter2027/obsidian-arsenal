@@ -1,0 +1,26 @@
+# Run from the Actions tab ("Publish releases" -> Run workflow).
+# Creates one GitHub release per jar in releases/ (skipping any that already exist),
+# using releases/notes/<version>.md as the description, and marks the newest one as latest.
+name: Publish releases
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create releases
+        run: |
+          latest=""
+          for jar in $(ls releases/obsidian_arsenal-*.jar | sort -V); do
+            v=$(basename "$jar" .jar); v=${v#obsidian_arsenal-}
+            latest="$v"
+            if gh release view "v$v" >/dev/null 2>&1; then echo "v$v exists, skipping"; continue; fi
+            gh release create "v$v" "$jar" --target main --title "Obsidian Arsenal $v" \
+              --notes-file "releases/notes/$v.md" --latest=false
+          done
+          [ -n "$latest" ] && gh release edit "v$latest" --latest

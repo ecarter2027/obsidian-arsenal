@@ -1,5 +1,9 @@
 # Obsidian Arsenal (Forge 1.20.1)
 
+## Downloads
+
+Every build is in [Releases](../../releases) and in the [`releases/`](releases) folder. Forge 1.20.1; also needs GeckoLib, PlayerAnimator, AAA Particles and Iron's Spells 'n Spellbooks.
+
 Obsidian armor, a two-mode Obsidian Gauntlet, and three new Iron's Spells schools (**Obsidian**, **Hellfire** and **Plasma**) with twelve spells.
 
 ## Required mods (all four are hard dependencies)
