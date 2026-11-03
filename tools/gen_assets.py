@@ -1798,3 +1798,124 @@ w(f"{G}/entity/grapple_hook.geo.json", _g)
 w(f"{AN}/entity/grapple_hook.animation.json", {"format_version": "1.8.0", "animations": {
     "animation.grapple_hook.idle": {"animation_length": 1.0, "loop": True, "bones": {}}}})
 print("v13 grapple hook model")
+
+# =====================================================================================================
+# v14: smooth meshes. Armor spines and the whole gauntlet are drawn as smooth procedural meshes (curved needle
+#      thorns, rounded bands, capsules, soft plates) by client/mesh/SmoothPartsLayer, attached to the GeckoLib bones.
+#      The geo files keep only the (cube-less) bones so animations and armor slot visibility still drive them.
+# =====================================================================================================
+def _rot(r):
+    # Blockbench rotation (deg) -> effective file-space rotation matrix (same convention GeckoLib bakes)
+    a, b, c = np.radians([-r[0], r[1], -r[2]])
+    Rx = np.array([[1, 0, 0], [0, np.cos(a), -np.sin(a)], [0, np.sin(a), np.cos(a)]])
+    Ry = np.array([[np.cos(b), 0, np.sin(b)], [0, 1, 0], [-np.sin(b), 0, np.cos(b)]])
+    Rz = np.array([[np.cos(c), -np.sin(c), 0], [np.sin(c), np.cos(c), 0], [0, 0, 1]])
+    return Rz @ Ry @ Rx
+
+def thorn(base, axis, length, width, sweep=0.0, glow=0.3, curl=0.55):
+    ax = np.array(AXES[axis], float)
+    rot = (0, 0, 0)
+    if sweep:
+        if axis in ("+z", "-z"): rot = (sweep * (1 if axis == "+z" else -1), 0, 0)
+        elif axis in ("+x", "-x"): rot = (0, 0, sweep * (1 if axis == "-x" else -1))
+        else: rot = (sweep, 0, 0)
+    R = _rot(rot)
+    d = R @ ax
+    d2 = R @ R @ ax                                   # continuing the sweep gives the thorn its curve
+    bend = (d2 - d) * length * curl
+    return {"type": "thorn", "a": [round(v, 3) for v in base], "b": [round(v, 4) for v in d], "c": [round(v, 3) for v in bend],
+            "len": round(length * 1.25, 3), "r": round(width * 0.62, 3), "glow": glow}
+
+A9 = {k: [] for k in ("armorHead", "armorBody", "armorRightArm", "armorLeftArm", "armorRightLeg", "armorLeftLeg", "armorRightBoot", "armorLeftBoot")}
+for i, (z, L) in enumerate(((-2.6, 2.2), (-0.9, 3.2), (0.8, 3.8), (2.5, 3.2))):
+    A9["armorHead"].append(thorn((0, 32, z), "+y", L, 1.5, -14 - 6 * i))
+for sx in (-1, 1):
+    A9["armorHead"].append(thorn((2.2 * sx, 29.5, 4), "+z", 2.6, 1.3, 12))
+    A9["armorHead"].append(thorn((4 * sx, 30.0, -1.5), "+x" if sx > 0 else "-x", 2.4, 1.2, 24))
+for i, (y, L) in enumerate(((22.5, 3.6), (20.0, 4.4), (17.5, 4.0), (15.0, 3.0), (13.0, 2.0))):
+    A9["armorBody"].append(thorn((0, y, 2), "+z", L, 1.6, 22))
+for sx in (-1, 1):
+    A9["armorBody"].append(thorn((2.6 * sx, 21.0, 2), "+z", 2.8, 1.2, 30))
+    A9["armorBody"].append(thorn((2.2 * sx, 22.2, -2), "-z", 1.5, 1.0, 20))
+    A9["armorBody"].append(thorn((4 * sx, 17.0, 0.5), "+x" if sx > 0 else "-x", 1.6, 1.0, 15))
+for arm, sx in (("armorRightArm", -1), ("armorLeftArm", 1)):
+    out = "+x" if sx > 0 else "-x"
+    A9[arm] += [thorn((8 * sx, 22.6, 0), out, 3.2, 1.5, 32), thorn((6 * sx, 24, 0.5), "+y", 2.6, 1.3, -10),
+                thorn((6 * sx, 17.0, 2), "+z", 2.6, 1.2, -25), thorn((8 * sx, 14.5, 0), out, 1.6, 0.9, -15)]
+for leg, sx in (("armorRightLeg", -1), ("armorLeftLeg", 1)):
+    A9[leg] += [thorn((4 * sx, 10.5, 0), "+x" if sx > 0 else "-x", 2.2, 1.2, 28), thorn((2 * sx, 6.5, -2), "-z", 2.0, 1.2, 18),
+                thorn((2 * sx, 9.0, 2), "+z", 1.6, 0.9, 10)]
+for boot, sx in (("armorRightBoot", -1), ("armorLeftBoot", 1)):
+    A9[boot] += [thorn((2 * sx, 1.5, 2), "+z", 2.6, 1.2, -8), thorn((4 * sx, 2.6, 0), "+x" if sx > 0 else "-x", 1.5, 0.9, 20)]
+os.makedirs(f"{A}/smooth", exist_ok=True)
+w(f"{A}/smooth/obsidian_armor.json", A9)
+w(f"{G}/item/armor/obsidian_armor.geo.json", geo("obsidian_armor", [dict((k, v) for k, v in b.items() if k != "cubes") for b in ar[:14]], 4))
+w(f"{AN}/item/armor/obsidian_armor.animation.json", {"format_version": "1.8.0", "animations": {
+    "animation.obsidian_armor.idle": {"animation_length": 3.0, "loop": True, "bones": {}}}})
+
+# ---- gauntlet: same bones as v10 (all animations keep working), smooth parts instead of cubes
+def tube(bottom, h, r, flare=1.0, r2=None):
+    return {"type": "tube", "a": list(bottom), "b": [0, 1, 0], "len": h, "r": r, "r2": r2 or r, "p": flare}
+def caps(a, b, r): return {"type": "capsule", "a": list(a), "b": list(b), "r": r}
+def blob(c, radii, p=3.0, mat="obsidian"): return {"type": "blob", "a": list(c), "b": list(radii), "p": p, "mat": mat}
+def needle(base, d, L, r, bend=(0, 0, 0), glow=0.35):
+    d = np.array(d, float); d /= np.linalg.norm(d)
+    return {"type": "thorn", "a": list(base), "b": [round(v, 4) for v in d], "c": list(bend), "len": L, "r": r, "glow": glow}
+GS = {"bracer": [], "fin_spikes": [], "extender": [], "fist": [], "knuckles": [], "claws": []}
+GS["bracer"] += [tube((0, -0.2, 0), 1.0, 2.62), tube((0, 0.7, 0), 1.5, 2.55, 1.05), tube((0, 2.0, 0), 1.5, 2.72, 1.05),
+                 tube((0, 3.3, 0), 1.5, 2.9, 1.05), tube((0, 4.6, 0), 1.2, 3.1, 1.03),
+                 blob((0, 2.8, -2.86), (0.65, 0.5, 0.28), 2.2, "glow"), blob((0, 2.8, 2.86), (0.65, 0.5, 0.28), 2.2, "glow"),
+                 needle((2.85, 0.8, 0), (0.22, 1, 0), 4.2, 0.5, (0.5, 0, 0), 0.25), needle((-2.85, 0.8, 0), (-0.22, 1, 0), 4.2, 0.5, (-0.5, 0, 0), 0.25)]
+for zs in (-1, 1):
+    for y, h in ((1.0, 1.8), (2.3, 2.4), (3.6, 3.0)):
+        GS["bracer"].append(needle((0, y, 2.85 * zs), (0, 0.93, 0.37 * zs), h, 0.45, (0, 0.2, 0.35 * zs)))
+GS["fin_spikes"] += [needle((3.1, 4.5, 0), (0.47, 0.88, 0), 3.8, 0.55, (0.6, 0.2, 0)), needle((-3.1, 4.5, 0), (-0.47, 0.88, 0), 3.8, 0.55, (-0.6, 0.2, 0))]
+GS["extender"] += [tube((0, -1.0, 0), 1.0, 1.6)]
+GS["fist"] += [blob((0, -1.65, 0), (2.3, 1.7, 2.2), 3.2), blob((0, -1.75, -2.35), (2.5, 1.25, 0.4), 3.0),
+               blob((0, -1.75, 2.35), (2.5, 1.25, 0.4), 3.0), caps((-2.65, -0.9, -0.2), (-2.55, -3.5, 0.3), 0.8)]
+for x in FX:
+    GS["fist"] += [caps((x, -3.75, -1.7), (x, -3.75, 1.7), 0.56), caps((x, -4.45, -1.25), (x, -4.45, 1.25), 0.46)]
+    GS["knuckles"].append(needle((x, -4.7, 0), (0, -1, 0), 2.1, 0.42, (0, 0, 0), 0.5))
+    GS["claws"].append(needle((x, -4.4, 0), (0, -1, 0), 5.4, 0.36, (0, 0, -0.9), 0.55))
+GS["claws"].append(needle((-2.6, -4.0, 0.2), (-0.15, -1, 0), 2.8, 0.32, (0, 0, -0.5), 0.55))
+w(f"{A}/smooth/obsidian_gauntlet.json", GS)
+w(f"{G}/item/obsidian_gauntlet.geo.json", geo("obsidian_gauntlet", [dict((k, v) for k, v in b.items() if k != "cubes") for b in gl], 4))
+
+# ---- smooth-mesh materials: glossy obsidian (dark violet-black, conchoidal sheen) and the glowing tip gradient
+so = np.zeros((32, 32, 4)); nz = noise(32, 32, 3)
+yy, xx = np.mgrid[0:32, 0:32] / 31.0
+sheen = np.clip(1 - np.abs(np.sin((xx * 2.0 + yy * 0.6) * np.pi)) * 1.2, 0, 1) ** 3
+so[..., 0] = 14 + 22 * nz + 70 * sheen; so[..., 1] = 9 + 12 * nz + 45 * sheen; so[..., 2] = 26 + 40 * nz + 110 * sheen; so[..., 3] = 255
+vein2 = np.abs(noise(32, 32, 4, 2) - 0.5) < 0.035
+so[vein2] = [120, 50, 200, 255]
+save(rgba(so), f"{T}/entity/smooth_obsidian.png")
+sg = np.zeros((16, 16, 4)); t = np.mgrid[0:16, 0:16][0] / 15.0
+sg[..., 0] = 150 + 105 * t; sg[..., 1] = 60 + 170 * t ** 2; sg[..., 2] = 255; sg[..., 3] = 230
+save(rgba(sg), f"{T}/entity/smooth_glow.png")
+print("v14 smooth meshes:", sum(len(v) for v in A9.values()), "armor thorns,", sum(len(v) for v in GS.values()), "gauntlet parts")
+
+# =====================================================================================================
+# v15: plasma beam textures for the smooth capsule renderer (tile in both directions; streaks run along V)
+# =====================================================================================================
+rs = np.random.RandomState(7)
+st = np.zeros((64, 32, 4)); st[..., 0] = 235; st[..., 1] = 25; st[..., 2] = 35; st[..., 3] = 235
+for _ in range(26):
+    u = rs.randint(0, 32); v0 = rs.randint(0, 64); L = rs.randint(10, 40); wd = rs.choice([1, 1, 2])
+    br = rs.uniform(0.55, 1.0)
+    for k in range(L):
+        v = (v0 + k) % 64
+        fall = 1 - abs(k - L / 2) / (L / 2)
+        for du in range(wd):
+            c = st[v, (u + du) % 32]
+            mix = br * fall
+            c[:3] = c[:3] * (1 - mix) + np.array([255, 245, 240]) * mix
+            c[3] = max(c[3], 235 + 20 * mix)
+# hot core band in the middle of each u-period so the beam reads brighter along its axis
+for u in range(32):
+    f = 0.25 * (1 + np.cos((u / 32.0) * 4 * np.pi))
+    st[:, u, :3] = np.clip(st[:, u, :3] + np.array([20, 70, 60]) * f, 0, 255)
+save(rgba(st), f"{T}/entity/plasma_streak.png")
+ha = np.zeros((32, 32, 4)); hn = noise(32, 32, 2)
+ha[..., 0] = 255; ha[..., 1] = 40 + 50 * hn; ha[..., 2] = 50; ha[..., 3] = 70 + 90 * hn
+save(rgba(ha), f"{T}/entity/plasma_halo.png")
+print("v15 plasma beam textures")

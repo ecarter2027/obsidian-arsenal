@@ -349,18 +349,19 @@ public class BlackHoleEntity extends Entity implements GeoEntity {
         var r = random;
         float f = sizeFactor(0);
         if (f <= 0.02f) return;
-        Vec3 c = position();
         if (getState() == FLYING && tickCount % 2 == 1) return;
         float sc = tierScale();
+        Vec3 c = position();
         int n = getState() == ANCHORED ? 6 + getTier() : 3;
+        // spherically even swirl so the hole looks the same from every angle
         for (int i = 0; i < n; i++) {
-            double ang = r.nextDouble() * Math.PI * 2;
+            Vec3 dir = new Vec3(r.nextGaussian(), r.nextGaussian(), r.nextGaussian()).normalize();
             double rad = (getState() != ANCHORED ? 1.2 + r.nextDouble() * 1.2 : (3.0 + r.nextDouble() * 6.0) * sc) * Math.max(0.3, f);
-            double y = (r.nextDouble() - 0.5) * (i < n * 2 / 3 ? 0.4 : 3.5) * Math.max(0.3, f) * (getState() == ANCHORED ? sc : 1);
-            Vec3 p = c.add(Math.cos(ang) * rad, y, Math.sin(ang) * rad);
-            Vec3 in = c.subtract(p).normalize();
-            Vec3 tangent = new Vec3(-Math.sin(ang), 0, Math.cos(ang));
-            Vec3 v = in.scale(0.12 + 0.06 * r.nextDouble()).add(tangent.scale(0.14));
+            Vec3 p = c.add(dir.scale(rad));
+            Vec3 axis = new Vec3(r.nextGaussian(), r.nextGaussian(), r.nextGaussian()).normalize();
+            Vec3 tangent = dir.cross(axis);
+            if (tangent.lengthSqr() < 1e-4) tangent = dir.cross(new Vec3(0, 1, 0));
+            Vec3 v = dir.scale(-(0.12 + 0.06 * r.nextDouble())).add(tangent.normalize().scale(0.14));
             level().addParticle(i % 3 == 0 ? Vfx.purpleSpark() : Vfx.voidWisp(), true, p.x, p.y, p.z, v.x, v.y, v.z);
         }
     }

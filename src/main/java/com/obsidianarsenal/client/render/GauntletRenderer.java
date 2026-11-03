@@ -4,7 +4,6 @@ import com.obsidianarsenal.ObsidianArsenal;
 import com.obsidianarsenal.item.ObsidianGauntletItem;
 import software.bernie.geckolib.model.DefaultedItemGeoModel;
 import software.bernie.geckolib.renderer.GeoItemRenderer;
-import software.bernie.geckolib.renderer.layer.AutoGlowingGeoLayer;
 
 /**
  * geo/item/obsidian_gauntlet.geo.json + animations/item/obsidian_gauntlet.animation.json + textures/item/obsidian_gauntlet.png.
@@ -13,6 +12,6 @@ import software.bernie.geckolib.renderer.layer.AutoGlowingGeoLayer;
 public class GauntletRenderer extends GeoItemRenderer<ObsidianGauntletItem> {
     public GauntletRenderer() {
         super(new DefaultedItemGeoModel<>(ObsidianArsenal.id("obsidian_gauntlet")));
-        addRenderLayer(new AutoGlowingGeoLayer<>(this));
+        addRenderLayer(new com.obsidianarsenal.client.mesh.SmoothPartsLayer<>(this, "obsidian_gauntlet"));
     }
 }

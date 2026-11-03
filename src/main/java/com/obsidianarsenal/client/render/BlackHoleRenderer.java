@@ -24,7 +24,9 @@ public class BlackHoleRenderer extends GeoEntityRenderer<BlackHoleEntity> {
 
     @Override
     protected void applyRotations(BlackHoleEntity e, PoseStack poseStack, float ageInTicks, float rotationYaw, float partialTick) {
-        super.applyRotations(e, poseStack, ageInTicks, 0f, partialTick);
+        // billboard: the model always faces the camera, so the hole looks identical from every direction
+        poseStack.mulPose(net.minecraft.client.Minecraft.getInstance().getEntityRenderDispatcher().cameraOrientation());
+        poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(180f));
         float s = Math.max(0.001f, e.sizeFactor(partialTick) * e.tierScale());
         poseStack.scale(s, s, s);
     }

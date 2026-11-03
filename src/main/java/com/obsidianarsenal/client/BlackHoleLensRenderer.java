@@ -48,6 +48,8 @@ public final class BlackHoleLensRenderer {
     private static TextureTarget sceneCopy;
     /** Lens disc radius in blocks at full size. */
     public static final float LENS_RADIUS = 4.2f;
+    /** The disk is always drawn as if seen from this fixed elevation, whatever the real camera angle. */
+    public static final float VIEW_TILT = 0.2f;
 
     /** Screen-space holes recorded during the world render, drawn later (shader-pack path). */
     private record ScreenHole(float x, float y, float rx, float ry, float tilt) {}
@@ -185,11 +187,8 @@ public final class BlackHoleLensRenderer {
         RenderSystem.restoreProjectionMatrix();
     }
 
-    /** sin(elevation of the camera above the hole's disk plane), signed: + looking from above. */
     private static float tilt(Vec3 camPos, Vec3 holePos) {
-        Vec3 v = camPos.subtract(holePos);
-        double len = v.length();
-        return len < 1e-3 ? 0.3f : (float) (v.y / len);
+        return VIEW_TILT;   // fixed: the hole looks the same from every angle (Gargantua-style, disk seen just above edge-on)
     }
 
     private static void copyScene(Minecraft mc) {
