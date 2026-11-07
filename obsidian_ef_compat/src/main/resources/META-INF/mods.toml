@@ -1,0 +1,38 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="MIT"
+
+[[mods]]
+modId="obsidian_ef_compat"
+version="${version}"
+displayName="Obsidian Arsenal x Epic Fight"
+authors="You"
+description='''Epic Fight moveset for the Obsidian Arsenal gauntlet, the Obsidian Stretch dodge skill and battle-mode glow for the obsidian armor. Moveset: a 7-hit punch-and-kick combo (8-hit when dual wielding two gauntlets), a lunging Piercing Lance dash, a Meteor Drop air attack, the Obsidian Onslaught innate skill and a boxer stance for idle/walk/run. In Epic Fight battle mode the gauntlet uses this moveset; in mining (vanilla) mode it keeps its own combo.'''
+
+[[dependencies.obsidian_ef_compat]]
+    modId="forge"
+    mandatory=true
+    versionRange="[47,)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.obsidian_ef_compat]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="[1.20.1,1.21)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.obsidian_ef_compat]]
+    modId="epicfight"
+    mandatory=true
+    versionRange="[20.14,)"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.obsidian_ef_compat]]
+    modId="obsidian_arsenal"
+    mandatory=true
+    versionRange="[1.0.9,)"
+    ordering="AFTER"
+    side="BOTH"

@@ -21,28 +21,23 @@
       0,
       0,
       0
-     ],
-     "rotation": [
-      0,
-      90,
-      0
      ]
     },
     {
      "name": "bracer",
      "pivot": [
-      0,
-      0,
-      0
+      0.35,
+      0.0,
+      0.0
      ],
      "parent": "root"
     },
     {
      "name": "fin_spikes",
      "pivot": [
-      0,
-      4.4,
-      0
+      0.35,
+      5.28,
+      0.0
      ],
      "parent": "bracer"
     },
@@ -67,18 +62,18 @@
     {
      "name": "knuckles",
      "pivot": [
-      0,
-      -4.5,
-      0
+      2.75,
+      -4.08,
+      0.0
      ],
      "parent": "fist"
     },
     {
      "name": "claws",
      "pivot": [
-      0,
-      -4.4,
-      0
+      0.35,
+      -4.68,
+      0.0
      ],
      "parent": "fist"
     }

@@ -9,6 +9,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.BlockTags;
@@ -125,17 +126,22 @@ public class ObsidianGauntletItem extends DiggerItem implements GeoItem {
             toggleMode(player, stack);
             return InteractionResultHolder.sidedSuccess(stack, level.isClientSide);
         }
-        // grappling hook: right-click fires (80 blocks), right-click again lets go
-        if (level instanceof ServerLevel sl) {
-            GrappleHookEntity existing = activeHook(sl, player);
-            if (existing != null) existing.release();
-            else {
-                GrappleHookEntity hook = GrappleHookEntity.fire(sl, player);
-                player.getPersistentData().putInt(HOOK_TAG, hook.getId());
-                player.getCooldowns().addCooldown(this, 8);
-            }
+        // right-click does nothing else: the grappling hook is on its own key (ModNetwork.GrappleC2S), so with Epic
+        // Fight right-click is free to guard like any other weapon
+        return InteractionResultHolder.pass(stack);
+    }
+
+    /** Grapple key: fires the hook (80 blocks), or lets go of the one already out. */
+    public static void grapple(ServerPlayer player) {
+        ItemStack stack = player.getMainHandItem().getItem() instanceof ObsidianGauntletItem ? player.getMainHandItem() : player.getOffhandItem();
+        if (!(stack.getItem() instanceof ObsidianGauntletItem item) || !(player.level() instanceof ServerLevel sl)) return;
+        GrappleHookEntity existing = activeHook(sl, player);
+        if (existing != null) existing.release();
+        else if (!player.getCooldowns().isOnCooldown(item)) {
+            GrappleHookEntity hook = GrappleHookEntity.fire(sl, player);
+            player.getPersistentData().putInt(HOOK_TAG, hook.getId());
+            player.getCooldowns().addCooldown(item, 8);
         }
-        return InteractionResultHolder.sidedSuccess(stack, level.isClientSide);
     }
 
     private static final String HOOK_TAG = "OA_GrappleHook";
@@ -176,6 +182,9 @@ public class ObsidianGauntletItem extends DiggerItem implements GeoItem {
         main.triggerableAnim("mode_mining", RawAnimation.begin().thenPlay("animation.obsidian_gauntlet.mode_mining"));
         for (int i = 1; i <= 7; i++)
             main.triggerableAnim("attack_" + i, RawAnimation.begin().thenPlay("animation.obsidian_gauntlet.attack_" + i));
+        // played by the Epic Fight add-on's claw moveset: blades held out while idling, snapped out on each rake
+        main.triggerableAnim("claws_out", RawAnimation.begin().thenPlay("animation.obsidian_gauntlet.claws_out"));
+        main.triggerableAnim("claw_strike", RawAnimation.begin().thenPlay("animation.obsidian_gauntlet.claw_strike"));
         controllers.add(main);
     }
 

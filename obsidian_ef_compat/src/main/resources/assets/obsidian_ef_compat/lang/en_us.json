@@ -1,0 +1,10 @@
+{
+ "skill.obsidian_ef_compat.obsidian_impaler": "Obsidian Impaler",
+ "skill.obsidian_ef_compat.obsidian_impaler.tooltip": "Thrust your arm straight at your crosshair as it and the gauntlet stretch into a tapered obsidian spike nearly 9 blocks long, impaling everything in its path for 60 damage that ignores armor.",
+ "skill.obsidian_ef_compat.twin_meteor": "Twin Meteor",
+ "skill.obsidian_ef_compat.twin_meteor.tooltip": "Dual wield only. Hammer out six alternating punches, then leap and drive both gauntlets into the ground in a shattering slam that knocks enemies down.",
+ "death.attack.obsidian_ef_compat.impale": "%1$s was impaled",
+ "death.attack.obsidian_ef_compat.impale.player": "%1$s was impaled by %2$s",
+ "skill.obsidian_ef_compat.obsidian_stretch": "Obsidian Stretch",
+ "skill.obsidian_ef_compat.obsidian_stretch.tooltip": "Your obsidian body stretches from where you stand to where you're going, then snaps you there: up to 7 blocks in the direction of your movement keys, taken from where you're looking (look up or down to dash up or down; no key dashes straight where you look). Stops short of walls, works in the air, and you can't be hit while stretched. No stamina cost and no cooldown."
+}

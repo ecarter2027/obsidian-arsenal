@@ -26,6 +26,16 @@ import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 @Mod.EventBusSubscriber(modid = ObsidianArsenal.MODID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public class ClientModEvents {
 
+    /** The gauntlet's grappling hook (default H). */
+    public static final net.minecraft.client.KeyMapping GRAPPLE_KEY = new net.minecraft.client.KeyMapping(
+            "key.obsidian_arsenal.grapple", com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM,
+            org.lwjgl.glfw.GLFW.GLFW_KEY_H, "key.categories.obsidian_arsenal");
+
+    @SubscribeEvent
+    public static void registerKeys(net.minecraftforge.client.event.RegisterKeyMappingsEvent e) {
+        e.register(GRAPPLE_KEY);
+    }
+
     @SubscribeEvent
     public static void clientSetup(FMLClientSetupEvent e) {
         // Our own PlayerAnimator layer for the gauntlet combo (priority above Iron's casting layer so combo wins).

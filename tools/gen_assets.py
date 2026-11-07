@@ -1919,3 +1919,750 @@ ha = np.zeros((32, 32, 4)); hn = noise(32, 32, 2)
 ha[..., 0] = 255; ha[..., 1] = 40 + 50 * hn; ha[..., 2] = 50; ha[..., 3] = 70 + 90 * hn
 save(rgba(ha), f"{T}/entity/plasma_halo.png")
 print("v15 plasma beam textures")
+
+# =====================================================================================================
+# v16: plated obsidian armor + open-claw gauntlet, recoloured black / grey / purple.
+#      Armor: layered GeckoLib plate cubes, every face painted into its own rect of a 128x128 atlas (per-face UV),
+#      plus a few glowing purple gems drawn by SmoothPartsLayer. Gauntlet: the hand is an open claw (splayed,
+#      segmented fingers with hooked talons); the extending claw blades now pivot at the fingertips.
+# =====================================================================================================
+BLK_LO, BLK_HI = np.array([10, 9, 13]), np.array([42, 39, 50])
+GRY_HI, GRY, GRY_LO = np.array([132, 129, 142]), np.array([80, 77, 88]), np.array([34, 32, 40])
+PUR, PUR_HI = np.array([118, 50, 186]), np.array([200, 135, 255])
+AW = 128
+atlas = np.zeros((AW, AW, 4)); aglow = np.zeros((AW, AW, 4))
+_shelf = {"x": 0, "y": 0, "h": 0}
+def alloc(w_, h_):
+    if _shelf["x"] + w_ > AW: _shelf.update(x=0, y=_shelf["y"] + _shelf["h"], h=0)
+    x, y = _shelf["x"], _shelf["y"]
+    assert y + h_ <= AW, "armor atlas full"
+    _shelf["x"] += w_; _shelf["h"] = max(_shelf["h"], h_)
+    return x, y
+
+def paint_face(w_, h_, kind, deco):
+    """Paints one cube face (w x h texels) and returns its atlas position. kind: plate | trim | inlay."""
+    x0, y0 = alloc(w_, h_)
+    n, n2 = noise(w_, h_, 2), noise(w_, h_, 3, 2)
+    px = np.zeros((h_, w_, 3)); gl_ = np.zeros((h_, w_, 4))
+    for j in range(h_):
+        for i in range(w_):
+            if kind == "plate":
+                c = BLK_LO + (BLK_HI - BLK_LO) * n[j, i] ** 1.6
+                d = (i + 0.6 * j) / max(w_ + 0.6 * h_, 1)
+                c = c + 34 * max(0.0, 1 - abs(d - 0.3) * 7) ** 2          # glassy sheen streak
+                if abs(n2[j, i] - 0.5) < 0.018 and 0 < i < w_ - 1 and 0 < j < h_ - 1: c = PUR * 0.75
+                if w_ == 1 or h_ == 1: c = GRY * 0.9                      # thin plate edges read as grey rims
+                elif j == 0: c = GRY
+                elif i == 0: c = GRY * 0.8
+                elif j == h_ - 1 or i == w_ - 1: c = GRY_LO
+            else:
+                c = GRY_LO + (GRY - GRY_LO) * (0.6 + 0.4 * n[j, i])
+                if h_ > 1 and j == 0: c = GRY_HI
+                elif h_ > 1 and j == h_ - 1: c = GRY_LO * 0.8
+                if kind == "trim" and h_ >= 3 and w_ >= 5 and j == h_ // 2 and i % 4 == 2: c = np.array([22, 20, 26])
+                if kind == "inlay" and h_ >= 3 and j == h_ // 2 and 0 < i < w_ - 1:
+                    c = PUR; gl_[j, i] = [*PUR_HI, 255]
+            px[j, i] = c
+    cx = w_ // 2
+    if deco == "visor":
+        r = round(h_ * 0.55)
+        for j in range(1, r): px[j, cx] = GRY * 0.95                   # nose ridge
+        for i in range(1, w_ - 1): px[r, i] = [6, 5, 8]                # eye slit
+        px[r, cx] = GRY
+        for i in (cx - 3, cx - 2, cx + 2, cx + 3):
+            if 0 < i < w_ - 1: px[r, i] = PUR_HI; gl_[r, i] = [*PUR_HI, 255]
+        for i in (2, 3, w_ - 3, w_ - 4):
+            if r + 2 < h_ - 1: px[r + 2, i] = [8, 7, 10]               # breathing holes
+    elif deco == "ridge":
+        for j in range(1, h_ - 1): px[j, cx] = GRY * 0.9
+    elif deco == "gem":
+        px[h_ // 2, cx] = PUR_HI; gl_[h_ // 2, cx] = [*PUR_HI, 255]
+    elif deco == "vents":
+        for i in (2, 4, w_ - 3, w_ - 5):
+            if 0 < i < w_ - 1: px[h_ // 2, i] = [8, 7, 10]
+    atlas[y0:y0 + h_, x0:x0 + w_, :3] = np.clip(px, 0, 255); atlas[y0:y0 + h_, x0:x0 + w_, 3] = 255
+    aglow[y0:y0 + h_, x0:x0 + w_] = gl_
+    return x0, y0
+
+def pcube(lo, hi, kind="plate", deco=None):
+    """Cube between two corners. deco decorates the north (front) face: visor | ridge | gem | vents;
+    ridge also goes on the south face so back plates match."""
+    size = [hi[i] - lo[i] for i in range(3)]
+    dims = {"north": (size[0], size[1]), "south": (size[0], size[1]), "east": (size[2], size[1]),
+            "west": (size[2], size[1]), "up": (size[0], size[2]), "down": (size[0], size[2])}
+    uv = {}
+    for f, (fw, fh) in dims.items():
+        tw, th = max(1, round(fw)), max(1, round(fh))
+        fd = deco if f == "north" or (f == "south" and deco == "ridge") else None
+        uv[f] = {"uv": list(paint_face(tw, th, kind, fd)), "uv_size": [tw, th]}
+    return {"origin": [round(v, 3) for v in lo], "size": [round(v, 3) for v in size], "uv": uv}
+
+def box(sx, t, y, z, kind="plate", deco=None):
+    """Mirrored box: t = (inner, outer) distance along the side's outward X (sx = -1 right, +1 left)."""
+    a, b = sx * t[0], sx * t[1]
+    return pcube((min(a, b), y[0], z[0]), (max(a, b), y[1], z[1]), kind, deco)
+
+AC = {k: [] for k in ("armorHead", "armorBody", "armorRightArm", "armorLeftArm", "armorRightLeg", "armorLeftLeg", "armorRightBoot", "armorLeftBoot")}
+# ---- helmet: closed great-helm, brow band, low crest ridge, jaw guard, cheek plates, neck guard
+AC["armorHead"] += [
+    pcube((-4.6, 24.3, -4.6), (4.6, 33.0, 4.6), "plate", "visor"),
+    pcube((-4.85, 29.2, -4.85), (4.85, 30.3, 4.85), "inlay"),
+    pcube((-0.55, 32.9, -4.4), (0.55, 33.8, 4.9), "trim"),
+    pcube((-0.55, 27.6, 4.5), (0.55, 33.8, 5.0), "trim"),
+    pcube((-4.85, 24.0, -4.95), (4.85, 26.4, -4.5), "plate", "vents"),
+    pcube((-4.95, 24.0, -4.5), (-4.5, 28.0, 1.2)), pcube((4.5, 24.0, -4.5), (4.95, 28.0, 1.2)),
+    pcube((-4.8, 23.6, 3.6), (4.8, 25.4, 5.1)),
+]
+# ---- chestplate: cuirass, raised breastplate, two abdominal lames, gorget, back plate, fauld band
+AC["armorBody"] += [
+    pcube((-4.7, 13.0, -2.7), (4.7, 24.4, 2.7)),
+    pcube((-4.35, 17.6, -3.3), (4.35, 24.1, -2.7), "plate", "ridge"),
+    pcube((-4.15, 15.8, -3.15), (4.15, 17.6, -2.7)),
+    pcube((-4.0, 14.0, -3.0), (4.0, 15.8, -2.7)),
+    pcube((-3.4, 23.6, -3.2), (3.4, 24.9, 3.2), "inlay"),
+    pcube((-4.35, 15.0, 2.7), (4.35, 24.1, 3.25), "plate", "ridge"),
+    pcube((-4.85, 12.6, -2.95), (4.85, 13.8, 2.95), "trim"),
+]
+# ---- arms: sleeve, three-lame pauldron, elbow cop, vambrace + cuff
+for arm, sx in (("armorRightArm", -1), ("armorLeftArm", 1)):
+    AC[arm] += [
+        box(sx, (3.35, 8.65), (12.4, 24.5), (-2.65, 2.65)),
+        box(sx, (3.4, 9.4), (21.6, 25.3), (-3.35, 3.35)),
+        box(sx, (3.9, 9.15), (19.9, 21.7), (-3.1, 3.1)),
+        box(sx, (4.4, 8.95), (18.6, 20.0), (-2.9, 2.9), "trim"),
+        box(sx, (4.8, 7.2), (15.6, 17.6), (2.6, 3.25)),
+        box(sx, (3.25, 8.75), (13.4, 16.0), (-2.75, 2.75)),
+        box(sx, (3.15, 8.85), (12.2, 13.4), (-2.85, 2.85), "inlay"),
+    ]
+# ---- legs: cuisse, two-lame tasset, knee cop (the left leg sits a hair further out so the inner faces never z-fight)
+for leg, sx in (("armorRightLeg", -1), ("armorLeftLeg", 1)):
+    zo = 0.0 if sx < 0 else 0.04
+    AC[leg] += [
+        box(sx, (-0.2, 4.45), (5.0, 12.3), (-2.55 - zo, 2.55 + zo)),
+        box(sx, (-0.25, 4.7), (11.0, 12.7), (-2.95 - zo, 2.95 + zo), "inlay"),
+        box(sx, (-0.2, 4.6), (9.4, 11.0), (-2.8 - zo, 2.8 + zo)),
+        box(sx, (0.7, 3.1), (4.3, 6.9), (-3.15 - zo, -2.4), "plate", "gem"),
+    ]
+# ---- boots: greave, toe cap, cuff
+for boot, sx in (("armorRightBoot", -1), ("armorLeftBoot", 1)):
+    zo = 0.0 if sx < 0 else 0.04
+    AC[boot] += [
+        box(sx, (-0.2, 4.85), (-0.3, 5.6), (-2.85 - zo, 2.85 + zo), "plate", "ridge"),
+        box(sx, (0.0, 4.6), (-0.3, 2.0), (-3.7 - zo, -2.85)),
+        box(sx, (-0.3, 5.05), (4.6, 5.9), (-3.05 - zo, 3.05 + zo), "inlay"),
+    ]
+_ar = []
+for b in ar[:14]:
+    b = dict((k, v) for k, v in b.items() if k != "cubes")
+    if AC.get(b["name"]): b["cubes"] = AC[b["name"]]
+    _ar.append(b)
+_g = geo("obsidian_armor", _ar, 4)
+_g["minecraft:geometry"][0]["description"]["texture_width"] = AW
+_g["minecraft:geometry"][0]["description"]["texture_height"] = AW
+w(f"{G}/item/armor/obsidian_armor.geo.json", _g)
+save(rgba(atlas), f"{T}/item/armor/obsidian_armor.png")
+save(rgba(aglow), f"{T}/item/armor/obsidian_armor_glowmask.png")
+# glowing gems / eye slits (emissive, drawn by SmoothPartsLayer on the same bones)
+A16 = {k: [] for k in AC}
+A16["armorHead"] += [blob((sx * 1.9, 28.25, -4.63), (1.05, 0.2, 0.1), 2.2, "glow") for sx in (-1, 1)]
+A16["armorBody"] += [blob((0, 22.4, -3.36), (0.7, 0.9, 0.16), 2.0, "glow"), blob((0, 22.4, 3.31), (0.55, 0.7, 0.12), 2.0, "glow")]
+for arm, sx in (("armorRightArm", -1), ("armorLeftArm", 1)):
+    A16[arm].append(blob((sx * 9.45, 23.45, 0), (0.1, 0.65, 0.65), 2.0, "glow"))
+for leg, sx in (("armorRightLeg", -1), ("armorLeftLeg", 1)):
+    A16[leg].append(blob((sx * 1.9, 5.6, -3.2 - (0.0 if sx < 0 else 0.04)), (0.38, 0.45, 0.1), 2.0, "glow"))
+w(f"{A}/smooth/obsidian_armor.json", A16)
+PAL16 = {"X": (12, 11, 15), "o": (58, 55, 68), "p": (165, 85, 240)}
+for n in ("obsidian_helmet", "obsidian_chestplate", "obsidian_leggings", "obsidian_boots"):
+    pix(ICONS[n], PAL16, f"{T}/item/{n}.png")
+print("v16 plated armor:", sum(len(v) for v in AC.values()), "plates, atlas rows used:", _shelf["y"] + _shelf["h"])
+
+# ---- gauntlet: open claw. Same bones (all animations still apply); thumb on -X, palm toward +Z, fingers toward -Y.
+def _mid(a, b, off=(0, 0, 0)): return [round((a[i] + b[i]) / 2 + off[i], 3) for i in range(3)]
+GS["fist"] = [blob((0, -1.6, 0.1), (2.35, 1.65, 1.7), 3.0),                       # palm
+              blob((0, -1.7, -1.8), (2.5, 1.4, 0.38), 3.0),                       # back-of-hand plate
+              caps((-2.0, -3.0, -0.9), (2.0, -3.0, -0.9), 0.55)]                  # knuckle guard
+GS["knuckles"], GS["claws"] = [], []
+for x0, L in zip(FX, (0.95, 1.0, 0.96, 0.82)):
+    s = x0 * 0.32
+    k0 = (x0, -3.0, -0.2)
+    k1 = (round(x0 + s * 0.6, 3), round(-3.0 - 1.9 * L, 3), 0.25)
+    k2 = (round(x0 + s, 3), round(-3.0 - 3.5 * L, 3), 1.05)
+    GS["fist"] += [caps(k0, k1, 0.56), caps(k1, k2, 0.48),
+                   blob(_mid(k0, k1, (0, 0, -0.45)), (0.5, 0.9 * L, 0.28), 2.5), blob(_mid(k1, k2, (0, 0, -0.38)), (0.44, 0.75 * L, 0.25), 2.5),
+                   needle(k2, (s * 0.25, -0.75, 0.75), 2.6 * L, 0.45, (0, 0, 0.5), 0.45)]          # hooked talon
+    GS["knuckles"].append(needle((x0, -3.0, -1.3), (0, -0.35, -1), 1.3, 0.32, (0, -0.3, 0), 0.5))
+    GS["claws"].append(needle(k2, (s * 0.2, -1, 0.25), 4.6 * L, 0.38, (0, 0, 0.8), 0.6))          # extending blade
+t0, t1, t2 = (-2.3, -1.0, 0.4), (-3.1, -2.6, 1.2), (-3.0, -3.9, 2.0)
+GS["fist"] += [caps(t0, t1, 0.62), caps(t1, t2, 0.52), blob(_mid(t0, t1, (-0.4, 0, 0)), (0.35, 0.8, 0.5), 2.5),
+               needle(t2, (0.15, -0.6, 0.8), 2.2, 0.4, (0.3, 0, 0.4), 0.45)]
+w(f"{A}/smooth/obsidian_gauntlet.json", GS)
+for b in gl:
+    if b["name"] == "claws": b["pivot"] = [0, -6.3, 0]   # blades fold away at the fingertips, not inside the palm
+w(f"{G}/item/obsidian_gauntlet.geo.json", geo("obsidian_gauntlet", [dict((k, v) for k, v in b.items() if k != "cubes") for b in gl], 4))
+
+# ---- smooth-mesh materials: near-black obsidian with a neutral grey sheen + purple veins; deep purple glow
+so = np.zeros((32, 32, 4)); nz = noise(32, 32, 3)
+so[..., 0] = 11 + 18 * nz + 62 * sheen; so[..., 1] = 10 + 16 * nz + 60 * sheen; so[..., 2] = 15 + 24 * nz + 74 * sheen; so[..., 3] = 255
+so[vein2] = [*PUR, 255]
+save(rgba(so), f"{T}/entity/smooth_obsidian.png")
+sg = np.zeros((16, 16, 4)); t = np.mgrid[0:16, 0:16][0] / 15.0
+sg[..., 0] = 105 + 95 * t; sg[..., 1] = 28 + 135 * t ** 2; sg[..., 2] = 195 + 60 * t; sg[..., 3] = 230
+save(rgba(sg), f"{T}/entity/smooth_glow.png")
+print("v16 open-claw gauntlet:", sum(len(v) for v in GS.values()), "parts")
+
+# =====================================================================================================
+# v17: slanted, sharp plated skin-armor + angular cube claw gauntlet (both GeckoLib cubes, per-face painted atlases,
+#      purple seams/edges glow through AutoGlowingGeoLayer). Rotated cubes use _rot (verified against GeckoLib's
+#      baking: file-space R = Rz(-rz) Ry(ry) Rx(-rx), about the file-space pivot).
+#
+#      Gauntlet frame (no root rotation, checked against ItemInHandLayer + the third-person display transform):
+#      +Y up the forearm, wrist at y=0 (= 6.3 px down the arm bone), the arm's hand end is at y=-3.66 and its 4x4
+#      cross-section is x,z in [-2,2]. +X = outer side of the arm, -X = toward the body, +Z = front, -Z = back.
+#      The hand is modelled as a RIGHT hand with the palm toward -Z (palm down when the arm is raised, thumb on
+#      the inner side); the left-hand display transforms mirror X so the off-hand is a true left hand.
+# =====================================================================================================
+def new_atlas(size, dens):
+    """Fresh atlas; dens = texels per model pixel (GeckoLib divides UVs by texture_width, so any density works)."""
+    global AW, atlas, aglow, DENS
+    AW, DENS = size, dens; atlas = np.zeros((size, size, 4)); aglow = np.zeros((size, size, 4)); _shelf.update(x=0, y=0, h=0)
+
+SEAM = [*PUR_HI, 255]
+PAINTED = {}   # (atlas, w, h, kind, deco) -> where that face was painted: mirrored plates share one texture
+
+
+def paint2(w_, h_, kind, deco):
+    """kinds: skin (dark living obsidian, glowing veins) | plate (glossy black, grey rim, glowing bottom seam)
+    | edge (black, glowing purple outline) | blade (black to grey) | bladetip (blade with a glowing tip).
+    Each face shape is painted once per atlas and reused, so the left and right copies of a plate look identical."""
+    key = (id(atlas), w_, h_, kind, deco)
+    if key in PAINTED:
+        return PAINTED[key]
+    x0, y0 = alloc(w_, h_)
+    PAINTED[key] = (x0, y0)
+    n, n2 = noise(w_, h_, 2 * DENS), noise(w_, h_, 3 * DENS, 2)
+    n, n2 = (n + n[:, ::-1]) / 2, (n2 + n2[:, ::-1]) / 2          # left-right symmetric, so mirrored plates match
+    px = np.zeros((h_, w_, 3)); g = np.zeros((h_, w_, 4))
+    thin = w_ == 1 or h_ == 1
+    for j in range(h_):
+        for i in range(w_):
+            edge = i == 0 or j == 0 or i == w_ - 1 or j == h_ - 1
+            if kind == "skin":
+                c = np.array([13, 11, 17]) + np.array([16, 13, 24]) * n[j, i] + np.array([10, 2, 20]) * n2[j, i] ** 3
+            elif kind == "plate":
+                c = BLK_LO + (BLK_HI - BLK_LO) * n[j, i] ** 1.6
+                d = abs(i - (w_ - 1) / 2) / max(w_, 1) + 0.25 * j / max(h_, 1)
+                c = c + 34 * max(0.0, 1 - abs(d - 0.28) * 7) ** 2
+                if thin: c = GRY * 0.85
+                elif j == 0: c = GRY
+                elif i == 0 or i == w_ - 1: c = GRY * 0.62
+                elif j == h_ - 1: c = PUR; g[j, i] = SEAM
+            elif kind == "edge":
+                c = BLK_LO + (BLK_HI - BLK_LO) * n[j, i] ** 1.6
+                c = c + 26 * max(0.0, 1 - abs((i + 0.6 * j) / max(w_ + 0.6 * h_, 1) - 0.3) * 7) ** 2
+                if thin or edge: c = PUR; g[j, i] = SEAM
+            else:  # blade / bladetip
+                f = j / max(h_ - 1, 1)
+                c = BLK_LO + (GRY - BLK_LO) * (0.1 + 0.45 * f) * (0.7 + 0.3 * n[j, i])
+                if i == 0 or i == w_ - 1: c = c * 0.6
+                if kind == "bladetip" and f > 0.55: c = PUR_HI; g[j, i] = SEAM
+            px[j, i] = c
+    if deco == "eyes":
+        r = round(h_ * 0.5); cx = w_ // 2
+        for i in range(1, w_ - 1):
+            if abs(i - cx + 0.5) > 0.8: px[r, i] = PUR_HI; g[r, i] = SEAM
+    atlas[y0:y0 + h_, x0:x0 + w_, :3] = np.clip(px, 0, 255); atlas[y0:y0 + h_, x0:x0 + w_, 3] = 255
+    aglow[y0:y0 + h_, x0:x0 + w_] = g
+    return x0, y0
+
+def save_atlas(geo_json, tex_path):
+    """Crops the atlas to the rows in use (next power of two) and records the size in the geo file."""
+    h_ = 1 << max(4, (_shelf["y"] + _shelf["h"] - 1).bit_length())
+    geo_json["minecraft:geometry"][0]["description"].update(texture_width=AW, texture_height=h_)
+    save(rgba(atlas[:h_]), tex_path); save(rgba(aglow[:h_]), tex_path.replace(".png", "_glowmask.png"))
+    return h_
+
+def tcube(lo, hi, kind="plate", deco=None, rot=None, pivot=None):
+    size = [hi[i] - lo[i] for i in range(3)]
+    dims = {"north": (size[0], size[1]), "south": (size[0], size[1]), "east": (size[2], size[1]),
+            "west": (size[2], size[1]), "up": (size[0], size[2]), "down": (size[0], size[2])}
+    uv = {}
+    for f, (fw, fh) in dims.items():
+        tw, th = max(1, round(fw * DENS)), max(1, round(fh * DENS))
+        k = kind if not (kind.startswith("blade") and f in ("up", "down")) else "edge"
+        uv[f] = {"uv": list(paint2(tw, th, k, deco if f == "north" else None)), "uv_size": [tw, th]}
+    c = {"origin": [round(v, 3) for v in lo], "size": [round(v, 3) for v in size], "uv": uv}
+    if rot and any(rot):
+        c["rotation"] = [round(v, 3) for v in rot]; c["pivot"] = [round(v, 3) for v in pivot]
+    return c
+
+def aim(d):
+    """Cube rotation (rx, 0, rz) that turns the cube's -Y axis onto direction d (file space)."""
+    d = np.array(d, float); d /= np.linalg.norm(d)
+    a = math.asin(max(-1.0, min(1.0, -d[2]))); c = math.atan2(d[0], -d[1])
+    r = (-math.degrees(a), 0.0, -math.degrees(c))
+    assert np.allclose(_rot(r) @ np.array([0, -1, 0]), d, atol=1e-6)
+    return r
+
+def seg(j, d, L, w_, t_, kind="plate"):
+    """Box hanging from joint j along direction d: length L, width w_ (local x) and thickness t_ (local z)."""
+    d = np.array(d, float); d /= np.linalg.norm(d)
+    lo = (j[0] - w_ / 2, j[1] - L, j[2] - t_ / 2); hi = (j[0] + w_ / 2, j[1], j[2] + t_ / 2)
+    return tcube(lo, hi, kind, None, aim(d), j), tuple(np.array(j) + d * L)
+
+SPIKE_PARTS = None   # while a list: blade() adds a jagged OBJ spike to it (via a marker) instead of making cubes
+SPIKE_N = [0]
+
+
+def spike_part(j, d, L, r):
+    """A jagged obsidian spike (models/obj/spike_<n>.obj, drawn by SmoothPartsLayer) from j along d."""
+    d = np.array(d, float); d /= np.linalg.norm(d)
+    SPIKE_N[0] += 1
+    return {"type": "obj", "mat": f"spike_{SPIKE_N[0] % 6}", "a": [round(float(v), 3) for v in j], "b": [round(float(v), 4) for v in d],
+            "len": round(float(L), 3), "r": round(float(r), 3), "p": float((SPIKE_N[0] * 67) % 360)}
+
+
+def blade(j, d, L, w_, t_, tiers=3, kind="blade"):
+    """Sharp tapered blade: `tiers` shrinking boxes along d (the last ones glow at the tip)."""
+    if SPIKE_PARTS is not None:
+        return [{"__spike__": spike_part(j, d, L * 1.05, max(w_, t_) * 0.55)}]
+    out, p = [], tuple(j)
+    fr = [(1.0, 0.42), (0.66, 0.34), (0.36, 0.3)][:tiers]
+    for k, (wf, lf) in enumerate(fr):
+        c, e = seg(p, d, L * lf, max(0.15, w_ * wf), max(0.15, t_ * wf), "bladetip" if k == len(fr) - 1 else "blade")
+        out.append(c); p = tuple(np.array(p) + (np.array(e) - np.array(p)) * 0.92)
+    return out
+
+def xf(p, rot, pivot):
+    """Where point p of a cube rotated by rot about pivot ends up (file space)."""
+    return tuple(_rot(rot) @ (np.array(p, float) - np.array(pivot)) + np.array(pivot))
+
+def slab(lo, hi, rot, pivot, kind="plate"):
+    return tcube(lo, hi, kind, None, rot, pivot)
+
+# ------------------------------------------------------------------------------------------- ARMOR
+new_atlas(512, 2)
+SPIKE_PARTS = []
+AK = {k: [] for k in ("armorHead", "armorBody", "armorRightArm", "armorLeftArm", "armorRightLeg", "armorLeftLeg", "armorRightBoot", "armorLeftBoot")}
+H = AK["armorHead"]
+H.append(tcube((-4.4, 24.1, -4.4), (4.4, 32.4, 4.4), "skin", "eyes"))                    # skin-tight skull
+for sx in (-1, 1):
+    # V visor: brow plates rising outward over the glowing eye slit
+    H.append(slab((min(0, sx * 4.7), 28.9, -4.95), (max(0, sx * 4.7), 30.0, -4.4), (0, 0, -16 * sx), (0, 28.9, -4.7)))
+    # angular jaw: lower V meeting in a chin point
+    H.append(slab((min(0, sx * 4.6), 24.0, -4.95), (max(0, sx * 4.6), 25.9, -4.4), (0, 0, -13 * sx), (0, 24.0, -4.7)))
+    # swept-back side blades along the temples, ending in points behind the head
+    c, e = seg((sx * 4.7, 29.0, -3.4), (0, 0.32, 1), 8.2, 0.6, 2.2); H.append(c)
+    H += blade(tuple(np.array(e) - [0, 0, 0.3]), (0, 0.4, 1), 4.0, 0.55, 2.1)
+    c, e = seg((sx * 4.64, 26.9, -1.0), (0, 0.18, 1), 5.6, 0.55, 1.6); H.append(c)          # second, lower blade
+    H += blade(tuple(np.array(e) - [0, 0, 0.3]), (0, 0.24, 1), 2.8, 0.5, 1.5)
+c, e = seg((0, 32.3, -3.2), (0, 0.42, 1), 6.8, 0.85, 2.0); H.append(c)                   # crest fin
+H += blade(tuple(np.array(e) - [0, 0, 0.3]), (0, 0.5, 1), 4.2, 0.8, 1.9)
+H.append(slab((-4.2, 23.7, 4.25), (4.2, 26.6, 4.85), (20, 0, 0), (0, 26.6, 4.55)))        # flared neck guard
+
+B = AK["armorBody"]
+B.append(tcube((-4.45, 12.3, -2.45), (4.45, 24.3, 2.45), "skin"))
+for sx in (-1, 1):
+    lo_x, hi_x = (min(0.1 * sx, sx * 4.6), max(0.1 * sx, sx * 4.6))
+    B.append(slab((lo_x, 19.4, -3.0), (hi_x, 23.9, -2.45), (-8, 0, -12 * sx), (0.1 * sx, 23.9, -2.7)))   # pectorals
+    for k, (y0, y1) in enumerate(((17.2, 19.3), (15.1, 17.2), (13.0, 15.1))):                          # chevron ab plates
+        wx = 4.3 - 0.25 * k
+        # a hair apart at the middle and each row a little further out than the one above, so no two plates' faces
+        # share a depth (they fought over the pixels, and the glowing seams lost on one side)
+        zf = -2.95 - 0.07 * k
+        B.append(slab((min(sx * 0.06, sx * wx), y0, zf), (max(sx * 0.06, sx * wx), y1, -2.45), (-8, 0, -10 * sx), (sx * 0.06, y1, -2.7)))
+    B.append(slab((min(sx * 0.9, sx * 4.4), 18.4, 2.45), (max(sx * 0.9, sx * 4.4), 23.8, 2.95), (10, 0, 8 * sx), (sx * 0.9, 23.8, 2.7)))  # shoulder blades
+for k, y in enumerate((23.6, 21.4, 19.2, 17.0, 14.8)):                                    # vertebra plates down the back
+    hw = 1.5 - 0.12 * k
+    B.append(slab((-hw, y - 2.4, 2.45), (hw, y, 3.0), (24, 0, 0), (0, y, 2.7)))
+B.append(tcube((-3.6, 23.9, -2.8), (3.6, 24.6, 2.8)))                                     # collar
+B.append(tcube((-4.65, 12.1, -2.65), (4.65, 13.1, 2.65)))                                 # waist band
+
+for arm, sx in (("armorRightArm", -1), ("armorLeftArm", 1)):
+    A_ = AK[arm]
+    A_.append(tcube((min(sx * 3.55, sx * 8.45), 12.25, -2.45), (max(sx * 3.55, sx * 8.45), 24.45, 2.45), "skin"))
+    # three overlapping pauldron plates angled down and out, each ending in a sharp point
+    for k, (y0, y1, x0, x1, ang, zw) in enumerate(((23.6, 24.9, 3.6, 9.0, 22, 3.0), (22.2, 23.5, 4.2, 9.3, 28, 2.85), (20.8, 22.1, 4.8, 9.4, 34, 2.7))):
+        piv = (sx * (x0 + 0.4), y1 - 0.3, 0); rot = (0, 0, ang * sx)
+        A_.append(slab((min(sx * x0, sx * x1), y0, -zw), (max(sx * x0, sx * x1), y1, zw), rot, piv))
+        tip = xf((sx * (x1 - 0.2), (y0 + y1) / 2, 0), rot, piv)
+        A_ += blade(tip, _rot(rot) @ np.array([sx, -0.25, 0.0]), 2.4 - 0.3 * k, 0.55, 2.0 * zw / 3.0)
+    # forearm: slanted outer vane, back elbow spur, wrist cuff
+    A_.append(slab((min(sx * 8.4, sx * 8.95), 13.2, -2.1), (max(sx * 8.4, sx * 8.95), 18.2, 2.1), (0, 0, -8 * sx), (sx * 8.6, 13.2, 0)))
+    c, e = seg((sx * 6.0, 17.2, 2.4), (0, 0.4, 1), 0.6, 1.4, 1.0); A_.append(c)
+    A_ += blade(e, (0, 0.45, 1), 2.4, 1.2, 0.8)
+    A_.append(tcube((min(sx * 3.4, sx * 8.6), 12.1, -2.65), (max(sx * 3.4, sx * 8.6), 13.1, 2.65)))
+
+for leg, sx in (("armorRightLeg", -1), ("armorLeftLeg", 1)):
+    zo = 0.0 if sx < 0 else 0.04; L_ = AK[leg]
+    X = lambda a, b: (min(sx * a, sx * b), max(sx * a, sx * b))
+    xa, xb = X(-0.15, 4.35); L_.append(tcube((xa, 4.8, -2.45 - zo), (xb, 12.35, 2.45 + zo), "skin"))
+    for (y0, y1) in ((10.0, 12.6), (7.8, 10.3)):                                          # outer tassets flaring out
+        xa, xb = X(1.0, 4.75); piv = (sx * 4.5, y1, 0)
+        L_.append(slab((xa, y0, -2.7 - zo), (xb, y1, 2.7 + zo), (0, 0, -12 * sx), piv))
+    xa, xb = X(0.1, 3.8); L_.append(slab((xa, 7.5, -2.95 - zo), (xb, 11.8, -2.45), (-10, 0, 0), (sx * 1.9, 11.8, -2.7)))  # front thigh
+    xa, xb = X(0.5, 3.3); L_.append(slab((xa, 4.6, -3.1 - zo), (xb, 7.4, -2.5), (-14, 0, 0), (sx * 1.9, 7.4, -2.8)))      # knee cop
+    L_ += blade((sx * 1.9, 7.1, -3.0 - zo), (0, 0.6, -1), 2.0, 1.1, 0.5)                                                   # knee point
+
+for boot, sx in (("armorRightBoot", -1), ("armorLeftBoot", 1)):
+    zo = 0.0 if sx < 0 else 0.04; F = AK[boot]
+    X = lambda a, b: (min(sx * a, sx * b), max(sx * a, sx * b))
+    xa, xb = X(-0.15, 4.4); F.append(tcube((xa, -0.2, -2.55 - zo), (xb, 5.2, 2.55 + zo), "skin"))
+    xa, xb = X(0.2, 3.6); F.append(slab((xa, 1.8, -3.1 - zo), (xb, 6.0, -2.55), (-6, 0, 0), (sx * 1.9, 6.0, -2.8)))  # shin plate
+    F += blade((sx * 1.9, 5.8, -3.0 - zo), (0, 1, -0.35), 1.8, 1.2, 0.45)
+    xa, xb = X(0.0, 3.8); F.append(tcube((xa, -0.2, -3.2 - zo), (xb, 1.6, -2.55)))                                 # sabaton
+    F += blade((sx * 1.9, 0.6, -3.15 - zo), (0, -0.05, -1), 1.8, 1.4, 0.9)                                         # pointed toe
+    F += blade((sx * 1.9, 1.2, 2.5 + zo), (0, -0.2, 1), 1.3, 0.8, 0.6)                                             # heel spur
+    xa, xb = X(-0.25, 4.55); F.append(tcube((xa, 4.6, -2.75 - zo), (xb, 5.6, 2.75 + zo)))                          # ankle cuff
+SPIKE_PARTS = None
+ASP = {k: [c["__spike__"] for c in v if "__spike__" in c] for k, v in AK.items()}   # the spikes, as OBJ parts per bone
+AK = {k: [c for c in v if "__spike__" not in c] for k, v in AK.items()}
+_ar = []
+for b in ar[:14]:
+    b = dict((k, v) for k, v in b.items() if k != "cubes")
+    if AK.get(b["name"]): b["cubes"] = AK[b["name"]]
+    _ar.append(b)
+_g = geo("obsidian_armor", _ar, 4)
+save_atlas(_g, f"{T}/item/armor/obsidian_armor.png")
+w(f"{G}/item/armor/obsidian_armor.geo.json", _g)
+w(f"{A}/smooth/obsidian_armor.json", ASP)          # jagged OBJ spikes (glow comes from the glowmask)
+print("v17 skin-armor:", sum(len(v) for v in AK.values()), "cubes, atlas rows used:", _shelf["y"] + _shelf["h"], "/", AW)
+
+# ------------------------------------------------------------------------------------------- GAUNTLET
+new_atlas(512, 4)
+GK = {k: [] for k in ("bracer", "fin_spikes", "extender", "fist", "knuckles", "claws")}
+GK["bracer"] += [tcube((-2.55, 0.1, -2.55), (2.55, 6.2, 2.55), "edge")]                    # forearm box around the 4x4 arm
+GK["extender"].append(tcube((-1.6, -1.0, -1.6), (1.6, 0.0, 1.6), "edge"))
+# hand: box that fully encloses the arm's hand end (to y=-3.66), knuckle plate on the back, fingers out of the end
+GK["fist"] += [tcube((-2.3, -4.0, -2.3), (2.3, 0.15, 2.3), "edge"),
+               slab((-2.2, -3.9, 2.3), (2.2, -1.0, 2.75), (-8, 0, 0), (0, -1.0, 2.5))]
+FXS = (-1.62, -0.54, 0.54, 1.62)
+for x0, L in zip(FXS, (0.95, 1.0, 0.96, 0.84)):
+    s = x0 * 0.12
+    j = (x0, -3.85, 0.35)
+    c1, j1 = seg(j, (s, -1, 0.18), 2.3 * L, 0.88, 0.95, "edge")                             # reaching, slightly extended
+    c2, j2 = seg(tuple(np.array(j1) + [0, 0.15, 0]), (s, -0.8, -0.6), 1.9 * L, 0.78, 0.85, "edge")   # bends toward the palm
+    GK["fist"] += [c1, c2] + blade(tuple(np.array(j2) + [0, 0.1, 0.05]), (s * 0.5, -0.45, -0.9), 3.6 * L, 0.7, 0.76)  # hooked talon
+t0 = (-2.25, -1.6, -1.3)                                                                   # thumb, inner side, opposing the fingers
+ct1, tj1 = seg(t0, (-0.55, -0.7, -0.45), 1.8, 0.95, 0.95, "edge")
+ct2, tj2 = seg(tj1, (-0.1, -0.6, -0.8), 1.4, 0.82, 0.82, "edge")
+GK["fist"] += [ct1, ct2] + blade(tj2, (0.25, -0.35, -0.9), 2.8, 0.66, 0.66)
+for x0 in FXS:                                                                             # knuckle spikes (pop on punches)
+    GK["knuckles"] += blade((x0, -3.6, 2.6), (0, -0.45, 1), 1.4, 0.55, 0.5)
+for x0 in (-1.08, 0.0, 1.08):                                                              # extending blades between the fingers
+    GK["claws"] += blade((x0, -4.0, 0.9), (0, -1, -0.12), 6.5, 0.32, 0.95)
+gk = [bone("root", (0, 0, 0)), bone("bracer", (0, 0, 0), GK["bracer"], "root"),
+      bone("fin_spikes", (0, 4.4, 0), GK["fin_spikes"], "bracer"), bone("extender", (0, 0, 0), GK["extender"], "root"),
+      bone("fist", (0, 0, 0), GK["fist"], "root"), bone("knuckles", (0, -3.6, 2.6), GK["knuckles"], "fist"),
+      bone("claws", (0, -4.0, 0), GK["claws"], "fist")]
+_g = geo("obsidian_gauntlet", gk, 4)
+save_atlas(_g, f"{T}/item/obsidian_gauntlet.png")
+w(f"{G}/item/obsidian_gauntlet.geo.json", _g)
+w(f"{A}/smooth/obsidian_gauntlet.json", {k: [] for k in GK})
+_gm = json.load(open(f"{A}/models/item/obsidian_gauntlet.json"))
+_gm["display"].update({
+    # third person: same wrist placement as before. Left-hand entries repeat the right-hand values (vanilla mirrors
+    # translation x / rotation y,z itself) and add scale x = -1, so the off-hand is an exact mirror: a real left hand.
+    "thirdperson_righthand": {"rotation": [90, 180, 0], "translation": [0, -2, 3.5], "scale": [1, 1, 1]},
+    "thirdperson_lefthand":  {"rotation": [90, 180, 0], "translation": [0, -2, 3.5], "scale": [-1, 1, 1]},
+    # first person: claw reaching forward, palm down, thumb toward the screen centre
+    "firstperson_righthand": {"rotation": [105, 172, 0], "translation": [1.5, 3.5, -1.0], "scale": [1.15, 1.15, 1.15]},
+    "firstperson_lefthand":  {"rotation": [105, 172, 0], "translation": [1.5, 3.5, -1.0], "scale": [-1.15, 1.15, 1.15]},
+    "gui":    {"rotation": [20, 125, -30], "translation": [0, 0.5, 0], "scale": [0.85, 0.85, 0.85]}})
+w(f"{A}/models/item/obsidian_gauntlet.json", _gm)
+print("v17 cube claw gauntlet:", sum(len(v) for v in GK.values()), "cubes, atlas rows used:", _shelf["y"] + _shelf["h"], "/", AW)
+
+# =====================================================================================================
+# v18: organic obsidian claw growing out of the skin. Same frame as v17 (+X outer side, -X toward the body, +Z front,
+#      wrist at y=0, hand end of the arm at y=-3.66). The hand now hangs naturally: palm toward the body, finger row
+#      running front-to-back along the player's side, thumb at the front. Smooth meshes (SmoothPartsLayer) for the
+#      hand, knuckles and the crust that thins out up the forearm (bare skin shows between patches, glowing cracks
+#      run into it); faceted cube shards break out of the crust and the back of the hand.
+#      The inner side must stay within x >= -2 (the torso is right there), so the fingers curl only a little inward.
+# =====================================================================================================
+new_atlas(512, 4)
+GC = {k: [] for k in ("bracer", "fin_spikes", "extender", "fist", "knuckles", "claws")}       # cube shards
+GM = {k: [] for k in GC}                                                                       # smooth parts
+def crack(*pts):
+    """Thin glowing vein along the skin through the given points."""
+    return [dict(caps(pts[i], pts[i + 1], 0.07), mat="glow") for i in range(len(pts) - 1)]
+# ---- forearm: full crust at the wrist, patches thinning toward the elbow, shards erupting, cracks into the skin
+GM["bracer"] += [blob((0.1, 0.6, 0), (2.35, 1.0, 2.4), 6.0),
+                 blob((1.75, 2.7, 0.2), (0.55, 2.0, 1.7), 3.0),                                 # outer side
+                 blob((0.3, 2.1, -1.8), (1.6, 1.5, 0.5), 3.0),                                  # back
+                 blob((-0.2, 1.7, 1.8), (1.3, 1.1, 0.45), 3.0),                                 # front
+                 blob((-1.8, 1.3, 0), (0.42, 0.8, 1.3), 3.0)]                                   # inner (flat, stays off the torso)
+GM["bracer"] += crack((2.04, 4.5, 0.4), (2.04, 5.3, -0.2), (2.04, 6.0, 0.35), (2.04, 6.6, -0.1))
+GM["bracer"] += crack((2.04, 4.1, 1.1), (2.04, 4.8, 1.6))
+GM["bracer"] += crack((0.6, 3.5, -2.04), (-0.2, 4.4, -2.04), (0.3, 5.2, -2.04))
+GM["bracer"] += crack((-0.4, 2.7, 2.04), (0.3, 3.5, 2.04), (-0.1, 4.2, 2.04))
+GC["bracer"] += blade((2.2, 2.0, -0.4), (0.75, 0.65, -0.1), 1.6, 0.55, 0.7)
+GC["bracer"] += blade((-0.5, 2.3, 2.05), (0.05, 0.7, 0.7), 1.3, 0.5, 0.5)
+GC["fin_spikes"] += blade((2.1, 3.4, 0.6), (0.55, 0.85, 0.12), 2.6, 0.75, 0.8)
+GC["fin_spikes"] += blade((2.1, 4.3, -0.5), (0.5, 0.85, -0.2), 1.8, 0.55, 0.6)
+GC["fin_spikes"] += blade((0.5, 3.4, -2.1), (0.15, 0.75, -0.65), 1.9, 0.6, 0.6)
+GM["extender"].append(tube((0, -1.0, 0), 1.0, 1.5))
+# ---- hand: soft rounded mass enclosing the arm's hand end (x up to -2.25 only), knuckle bumps on the back edge
+GM["fist"] += [blob((0.15, -1.6, 0), (2.4, 2.4, 2.5), 8.0),
+               blob((-1.6, -1.9, 0.2), (0.75, 1.5, 1.9), 3.0),                                  # palm pad
+               blob((-1.0, -1.4, 1.95), (1.0, 1.1, 0.7), 3.0)]                                  # thumb mound
+for z in (1.56, 0.52, -0.52, -1.56):
+    GM["fist"].append(blob((1.75, -3.6, z * 0.95), (0.7, 0.55, 0.5), 2.6))
+GC["fist"] += blade((2.45, -1.2, 0.8), (0.7, 0.7, 0.1), 1.6, 0.55, 0.6)                          # shards on the back of the hand
+GC["fist"] += blade((2.45, -2.0, -0.9), (0.75, 0.6, -0.2), 1.3, 0.5, 0.5)
+# fingers: front (index, next to the thumb) to back (little finger); straight down, curling gently toward the body
+for z0, L in zip((1.56, 0.52, -0.52, -1.56), (0.97, 1.0, 0.95, 0.8)):
+    s = z0 * 0.08
+    p, r = np.array((0.7, -3.55, z0 * 0.95)), 0.6
+    for d, ln, rr in (((-0.05, -1, s), 1.9, 0.6), ((-0.3, -0.95, s * 0.6), 1.5, 0.5), ((-0.55, -0.83, s * 0.3), 1.0, 0.43)):
+        d = np.array(d) / np.linalg.norm(d); q = p + d * ln * L
+        GM["fist"] += [caps(tuple(np.round(p, 3)), tuple(np.round(q, 3)), rr),
+                       blob(tuple(np.round(p + [0.25, 0, 0], 3)), (rr * 0.95, rr * 0.9, rr * 0.9), 2.4)]   # knuckle joint
+        p = q
+    GM["fist"].append(needle(tuple(np.round(p, 3)), (-0.3, -0.95, 0), 2.6 * L, 0.42, (-0.4, 0, 0), 0.45))  # talon
+# thumb: from the front-inner side, down and back under the index finger
+p = np.array((-1.0, -1.6, 2.2))
+for d, ln, rr in (((-0.25, -0.8, 0.55), 1.4, 0.62), ((-0.15, -0.9, -0.2), 1.1, 0.52)):
+    d = np.array(d) / np.linalg.norm(d); q = p + d * ln
+    GM["fist"] += [caps(tuple(np.round(p, 3)), tuple(np.round(q, 3)), rr), blob(tuple(np.round(p, 3)), (rr, rr, rr), 2.4)]
+    p = q
+GM["fist"].append(needle(tuple(np.round(p, 3)), (0, -0.8, -0.6), 2.0, 0.42, (0, 0, -0.3), 0.45))
+# knuckle crystals (pop on punches) and the extending claw blades between the fingers
+for z in (1.56, 0.52, -0.52, -1.56):
+    GC["knuckles"] += blade((2.2, -3.4, z * 0.95), (1, -0.45, 0), 1.3, 0.5, 0.5)
+for z in (1.04, 0.0, -1.04):
+    GM["claws"].append(needle((0.7, -3.9, z), (-0.08, -1, 0), 6.0, 0.34, (-0.3, 0, 0), 0.5))
+gk = [bone("root", (0, 0, 0)), bone("bracer", (0, 0, 0), GC["bracer"], "root"),
+      bone("fin_spikes", (0, 4.4, 0), GC["fin_spikes"], "bracer"), bone("extender", (0, 0, 0), None, "root"),
+      bone("fist", (0, 0, 0), GC["fist"], "root"), bone("knuckles", (2.0, -3.4, 0), GC["knuckles"], "fist"),
+      bone("claws", (0, -3.9, 0), None, "fist")]
+_g = geo("obsidian_gauntlet", gk, 4)
+save_atlas(_g, f"{T}/item/obsidian_gauntlet.png")
+w(f"{G}/item/obsidian_gauntlet.geo.json", _g)
+w(f"{A}/smooth/obsidian_gauntlet.json", GM)
+_gm = json.load(open(f"{A}/models/item/obsidian_gauntlet.json"))
+_gm["display"].update({
+    # first person: palm down, claws reaching forward, thumb toward the screen centre
+    "firstperson_righthand": {"rotation": [105, -90, 0], "translation": [1.5, 3.5, -1.0], "scale": [1.15, 1.15, 1.15]},
+    "firstperson_lefthand":  {"rotation": [105, -90, 0], "translation": [1.5, 3.5, -1.0], "scale": [-1.15, 1.15, 1.15]},
+    "gui":    {"rotation": [15, 35, -25], "translation": [0, 0.5, 0], "scale": [0.85, 0.85, 0.85]}})
+w(f"{A}/models/item/obsidian_gauntlet.json", _gm)
+print("v18 organic claw:", sum(len(v) for v in GC.values()), "shard cubes,", sum(len(v) for v in GM.values()), "smooth parts")
+
+# =====================================================================================================
+# v19: simpler, more natural claw. Smooth parts only, drawn with the vanilla obsidian block texture (no shards,
+#      cracks, knuckle bumps or glow). Fingers flex more at each joint like a relaxed hand: the index finger is the
+#      straightest, the little finger curls the most, and they fan slightly front-to-back. Every fingertip stays at
+#      x >= -2 so nothing reaches into the torso or leg while the arm hangs.
+# =====================================================================================================
+GM = {k: [] for k in ("bracer", "fin_spikes", "extender", "fist", "knuckles", "claws")}
+GM["bracer"] += [blob((0.1, 0.6, 0), (2.35, 1.0, 2.4), 6.0),                                    # crust around the wrist
+                 blob((1.2, 2.2, 0.1), (1.1, 1.9, 2.0), 3.0)]                                   # thinning up the outer forearm
+GM["extender"].append(tube((0, -1.0, 0), 1.0, 1.5))
+GM["fist"].append(blob((0.15, -1.6, 0), (2.4, 2.4, 2.5), 8.0))                                 # hand, encloses the arm's end
+def chain(p, segs, out):
+    """Capsule chain from p; segs = (angle from straight down toward the body (deg), front/back lean, length, radius)."""
+    p = np.array(p, float)
+    for ang, lean, ln, rr in segs:
+        a = math.radians(ang)
+        d = np.array([-math.sin(a), -math.cos(a), lean]); d /= np.linalg.norm(d)
+        q = p + d * ln
+        out.append(caps(tuple(np.round(p, 3)), tuple(np.round(q, 3)), rr))
+        p = q
+    return p, d
+#              z     length  curl  fan
+FINGERS = ((1.56, 0.95, 0.8, 0.10), (0.52, 1.0, 0.95, 0.03), (-0.52, 0.96, 1.05, -0.03), (-1.56, 0.8, 1.2, -0.10))
+for z0, L, k, fan in FINGERS:
+    tip, d = chain((1.3, -3.6, z0 * 0.95), ((10 * k, fan, 1.7 * L, 0.58), (30 * k, fan * 0.6, 1.3 * L, 0.5), (45 * k, fan * 0.3, 0.9 * L, 0.43)), GM["fist"])
+    GM["fist"].append(needle(tuple(np.round(tip, 3)), tuple(np.round(d, 4)), 2.0 * L, 0.42, (-0.25 * k, 0.1, 0), 0.0))   # talon
+# thumb: rests forward and down beside the index finger; thick and set well out on the front of the hand so it shows
+p = np.array((-0.7, -1.3, 2.45))
+GM["fist"].append(blob(tuple(p), (0.75, 0.9, 0.55), 2.6))                                       # its base pad
+for d, ln, rr in (((-0.2, -0.7, 0.68), 1.6, 0.8), ((-0.25, -0.95, 0.2), 1.3, 0.68)):
+    d = np.array(d) / np.linalg.norm(d); q = p + d * ln
+    GM["fist"].append(caps(tuple(np.round(p, 3)), tuple(np.round(q, 3)), rr)); p = q
+GM["fist"].append(needle(tuple(np.round(p, 3)), (-0.2, -0.95, -0.2), 1.9, 0.52, (-0.1, 0, -0.2), 0.0))
+for z in (1.04, 0.0, -1.04):                                                                   # extending claw blades
+    GM["claws"].append(needle((0.9, -3.9, z), (-0.08, -1, 0), 6.0, 0.34, (-0.3, 0, 0), 0.0))
+_tips = [c for c in GM["fist"] if c["type"] == "thorn"]
+assert all(c["a"][0] + c["b"][0] * c["len"] + c["c"][0] >= -2.05 for c in _tips), "a fingertip reaches into the body"
+gk = [bone("root", (0, 0, 0)), bone("bracer", (0, 0, 0), None, "root"), bone("fin_spikes", (0, 4.4, 0), None, "bracer"),
+      bone("extender", (0, 0, 0), None, "root"), bone("fist", (0, 0, 0), None, "root"),
+      bone("knuckles", (2.0, -3.4, 0), None, "fist"), bone("claws", (0, -3.9, 0), None, "fist")]
+w(f"{G}/item/obsidian_gauntlet.geo.json", geo("obsidian_gauntlet", gk, 4))
+w(f"{A}/smooth/obsidian_gauntlet.json", GM)
+print("v19 simple claw:", sum(len(v) for v in GM.values()), "smooth parts (vanilla obsidian texture)")
+
+# =====================================================================================================
+# v20: Epic Fight battle mode. Epic Fight draws a held item at its Tool_R / Tool_L joint times a correction
+#      (default translate(0,0,-0.13) rotateX(-90)) and then the normal third-person display transform, skipping
+#      vanilla's own hand offset. The correction below is the exact vanilla equivalent on the forearm:
+#      inverse(Tool rest, from the biped armature) * forearm-to-vanilla-arm frame * vanilla ItemInHandLayer offset,
+#      so the claw lines up with the arm exactly as it does without Epic Fight. "alwaysInHand" like Epic Fight's glove.
+#      Epic Fight reads assets/<mod>/item_skins/<item>.json itself; without Epic Fight the file is simply unused.
+#      (Right with Epic Fight's own poses; the add-on's claw animations once twisted the arm half a turn about itself,
+#      which made the claw face backwards there - fixed in the add-on's tools/ef_moves.py, not here.)
+# =====================================================================================================
+_hand = {"translation": [0.0, -0.0579, -0.1601], "rotation": [-84.73, 0.0, 0.0], "scale": [1.0, 1.0, 1.0]}
+w(f"{A}/item_skins/obsidian_gauntlet.json", {"renderer": "minecraft:base", "alwaysInHand": True,
+                                            "transforms": {"mainhand": {"Tool_R": _hand}, "offhand": {"Tool_L": _hand}}})
+print("v20 Epic Fight item skin for the gauntlet")
+
+# =====================================================================================================
+# v21: Epic Fight claw moveset hooks (triggered by the obsidian_ef_compat add-on). claws_out: the extending claw
+#      blades held out (the add-on re-triggers it through its idle / walk / run loops, so they stay out); claw_strike:
+#      the blades already out, snapped longer for a rake and held out after it.
+# =====================================================================================================
+_ga = json.load(open(f"{AN}/item/obsidian_gauntlet.animation.json"))
+_ga["animations"]["animation.obsidian_gauntlet.claws_out"] = {"animation_length": 2.6, "bones": {
+    "claws": {"scale": {"0.0": [1, 1, 1], "1.3": [1, 1.08, 1], "2.6": [1, 1, 1]}},
+    "knuckles": {"scale": {"0.0": [1, 1, 1], "1.3": [1.06, 1.06, 1.06], "2.6": [1, 1, 1]}},
+    "extender": {"scale": {"0.0": [1, 0.01, 1]}}}}
+_ga["animations"]["animation.obsidian_gauntlet.claw_strike"] = {"animation_length": 1.6, "bones": {
+    "claws": {"scale": {"0.0": [1, 1, 1], "0.1": {"vector": [1, 1.4, 1], "easing": "easeOutBack"}, "0.32": [1, 1.4, 1],
+                        "0.6": [1, 1, 1], "1.6": [1, 1, 1]}},
+    "knuckles": {"scale": {"0.0": [1, 1, 1], "0.1": [1.35, 1.35, 1.35], "0.3": [1, 1, 1]}},
+    "extender": {"scale": {"0.0": [1, 0.01, 1]}}}}
+w(f"{AN}/item/obsidian_gauntlet.animation.json", _ga)
+print("v21 gauntlet claws_out / claw_strike")
+
+
+# =====================================================================================================
+# v22: the whole claw 1.2x larger, scaled from the wrist (it still encloses the arm), then set 0.35 px outward so its
+#      inner side stays clear of the torso as before. The extender keeps its 1 px length (the stretch attacks scale
+#      it by exactly the distance the hand moves), only its girth grows.
+# =====================================================================================================
+CLAW_SCALE, CLAW_OUT = 1.2, 0.35
+def _grow(v, point=True):
+    v = [x * CLAW_SCALE for x in v]
+    if point: v[0] += CLAW_OUT
+    return [round(x, 3) for x in v]
+def _grow_part(p, bone):
+    p = dict(p)
+    if bone == "extender":
+        p["r"] = round(p["r"] * CLAW_SCALE, 3); p["r2"] = round(p.get("r2", p["r"]) * CLAW_SCALE, 3)
+        p["a"] = [CLAW_OUT] + list(p["a"][1:])
+        return p
+    p["a"] = _grow(p["a"])
+    t = p["type"]
+    if t == "blob": p["b"] = _grow(p["b"], False)
+    elif t == "capsule": p["b"] = _grow(p["b"]); p["r"] = round(p["r"] * CLAW_SCALE, 3)
+    elif t == "thorn":
+        p["c"] = _grow(p["c"], False); p["len"] = round(p["len"] * CLAW_SCALE, 3); p["r"] = round(p["r"] * CLAW_SCALE, 3)
+    elif t == "tube": p["len"] = round(p["len"] * CLAW_SCALE, 3); p["r"] = round(p["r"] * CLAW_SCALE, 3)
+    return p
+GM = {k: [_grow_part(p, k) for p in v] for k, v in GM.items()}
+_tips = [c for c in GM["fist"] if c["type"] == "thorn"] + [c for c in GM["fist"] if c["type"] == "capsule"]
+assert min(min(c["a"][0], (c["b"][0] if c["type"] == "capsule" else c["a"][0] + c["b"][0] * c["len"] + c["c"][0])) for c in _tips) >= -2.6, \
+    "the scaled claw reaches into the body"
+w(f"{A}/smooth/obsidian_gauntlet.json", GM)
+gk = [dict(b, pivot=_grow(b["pivot"]) if b["name"] not in ("root", "extender", "fist") else b["pivot"]) for b in gk]
+w(f"{G}/item/obsidian_gauntlet.geo.json", geo("obsidian_gauntlet", gk, 4))
+print("v22 claw scaled", CLAW_SCALE, "with a bigger thumb")
+
+# =====================================================================================================
+# v23: jagged obsidian spikes. Six OBJ models (models/obj/spike_0..5.obj): a unit spike along +Y from its base
+#      (y=0, radius 1) to a sharp tip (y=1), an irregular faceted cone with knocked-off ridges and a crooked point,
+#      flat faces, UVs tiling the vanilla obsidian texture. SmoothPartsLayer draws them ("obj" parts: base a, direction
+#      b, length len, radius r, roll p) with the same vanilla obsidian texture as the gauntlet. Used by the armor's
+#      spikes (v17 blade()), the Spike Explosion's ground spikes and the Obsidian Storm's spikes (cubes replaced).
+# =====================================================================================================
+def jagged_obj(seed):
+    rs = np.random.RandomState(1000 + seed)
+    sides = int(rs.choice([5, 6, 7]))
+    rings = [(0.0, 1.0), (0.28, 0.78), (0.55, 0.5), (0.8, 0.24)]   # (height, radius)
+    pts = []
+    for k, (h, r) in enumerate(rings):
+        ring = []
+        for i in range(sides):
+            a = 2 * math.pi * (i + rs.uniform(-0.22, 0.22)) / sides
+            rr = r * rs.uniform(0.72, 1.12) * (1.0 if k == 0 else rs.uniform(0.85, 1.1))
+            hh = h + (rs.uniform(-0.05, 0.05) if k else 0.0)
+            ring.append((rr * math.cos(a), hh, rr * math.sin(a), i / sides, h))
+        pts.append(ring)
+    tip = (rs.uniform(-0.08, 0.08), 1.0, rs.uniform(-0.08, 0.08))
+    lines = [f"# jagged obsidian spike {seed}, generated by tools/gen_assets.py (v23)", "o spike"]
+    vs, vts, faces = [], [], []
+    def v(p, uv):
+        vs.append(p); vts.append(uv); return len(vs)
+    for k in range(len(rings) - 1):
+        a, b = pts[k], pts[k + 1]
+        for i in range(sides):
+            j = (i + 1) % sides
+            u0, u1 = i / sides * 2, (i + 1) / sides * 2
+            q = [v(a[i][:3], (u0, a[i][4] * 2)), v(a[j][:3], (u1, a[j][4] * 2)), v(b[j][:3], (u1, b[j][4] * 2)), v(b[i][:3], (u0, b[i][4] * 2))]
+            faces += [(q[0], q[1], q[2]), (q[0], q[2], q[3])]
+    top = pts[-1]
+    for i in range(sides):
+        j = (i + 1) % sides
+        u0, u1 = i / sides * 2, (i + 1) / sides * 2
+        faces.append((v(top[i][:3], (u0, 1.6)), v(top[j][:3], (u1, 1.6)), v(tip, ((u0 + u1) / 2, 2.0))))
+    base = pts[0]
+    c = v((0.0, 0.0, 0.0), (0.5, 0.5))
+    for i in range(sides):
+        j = (i + 1) % sides
+        faces.append((c, v(base[j][:3], (0.5 + 0.5 * base[j][0], 0.5 + 0.5 * base[j][2])), v(base[i][:3], (0.5 + 0.5 * base[i][0], 0.5 + 0.5 * base[i][2]))))
+    lines += [f"v {p[0]:.4f} {p[1]:.4f} {p[2]:.4f}" for p in vs]
+    lines += [f"vt {t[0]:.4f} {t[1]:.4f}" for t in vts]
+    lines += [f"f {a}/{a} {b}/{b} {c_}/{c_}" for a, b, c_ in faces]
+    return "\n".join(lines) + "\n"
+for _k in range(6):
+    w(f"{A}/models/obj/spike_{_k}.obj", jagged_obj(_k), raw=True)
+
+# ---- the Spike Explosion's ground spikes and the Obsidian Storm's spikes: the cube towers become jagged spikes
+SPIKE_N[0] = 0
+def _spike_bones(model, parts):
+    g = json.load(open(f"{G}/entity/{model}.geo.json"))
+    for b in g["minecraft:geometry"][0]["bones"]:
+        b.pop("cubes", None)
+    w(f"{G}/entity/{model}.geo.json", g)
+    w(f"{A}/smooth/{model}.json", parts)
+_spike_bones("obsidian_spike", {
+    "spike": [spike_part((0, -2, 0), (0, 1, 0), 56, 7.5)],
+    "spikeL": [spike_part((-8, -2, 0), (0, 1, 0), 36, 4.4)], "spikeR": [spike_part((8, -2, 0), (0, 1, 0), 36, 4.4)],
+    "spikeB": [spike_part((0, -2, 8), (0, 1, 0), 32, 4.0)], "spikeF": [spike_part((0, -2, -8), (0, 1, 0), 29, 3.6)]})
+_spike_bones("obsidian_storm_spike", {"spike": [spike_part((0, 0, 0), (0, 1, 0), 34, 3.3)]})
+print("v23 jagged OBJ spikes: armor", sum(len(v) for v in ASP.values()), "+ ground and storm spikes")
+
+# =====================================================================================================
+# v24: a grasping claw. Every finger hangs at its own angle (the index nearly straight and fanned forward, each
+#      finger behind it curling further and fanning further back, a little more splayed apart), and the thumb is
+#      a true opposing digit: it leaves the palm on the inner side and curls down and out toward the fingertips, so
+#      the claw closes like a hand gripping. Built at v19 size, then 1.2x from the wrist like v22.
+# =====================================================================================================
+GM = {k: [] for k in ("bracer", "fin_spikes", "extender", "fist", "knuckles", "claws")}
+GM["bracer"] += [blob((0.1, 0.6, 0), (2.35, 1.0, 2.4), 6.0),                                    # crust around the wrist
+                 blob((1.2, 2.2, 0.1), (1.1, 1.9, 2.0), 3.0)]                                   # thinning up the outer forearm
+GM["extender"].append(tube((0, -1.0, 0), 1.0, 1.5))
+GM["fist"].append(blob((0.15, -1.6, 0), (2.4, 2.4, 2.5), 8.0))                                 # hand, encloses the arm's end
+#                z     length curl  fan    first-joint angle (deg toward the body), talon bend
+FINGERS24 = ((1.66, 1.0, 0.45, 0.26, -6.0, 0.08), (0.56, 1.1, 0.7, 0.07, -1.0, 0.16),
+             (-0.52, 1.0, 0.88, -0.12, 2.0, 0.22), (-1.56, 0.8, 1.02, -0.3, 5.0, 0.26))
+for z0, L, k, fan, a0, bend in FINGERS24:
+    tip, d = chain((1.3, -3.6, z0 * 0.95),
+                   ((a0 + 10 * k, fan, 1.7 * L, 0.58), (a0 + 30 * k, fan * 0.7, 1.3 * L, 0.5), (a0 + 44 * k, fan * 0.45, 0.9 * L, 0.43)),
+                   GM["fist"])
+    GM["fist"].append(needle(tuple(np.round(tip, 3)), tuple(np.round(d, 4)), 2.0 * L, 0.42, (-bend, 0.05, fan * 0.3), 0.0))   # talon
+# opposing thumb: a thick pad on the inner front of the palm, then down and outward toward the index fingertip
+p = np.array((-1.4, -1.6, 2.05))                                                               # (shifted toward the body, user request)
+GM["fist"].append(blob(tuple(p), (0.8, 1.0, 0.7), 2.6))                                         # thenar pad
+for dv, ln, rr in (((-0.05, -0.75, 0.42), 1.6, 0.8), ((0.3, -0.85, -0.1), 1.35, 0.68)):
+    dv = np.array(dv) / np.linalg.norm(dv); q = p + dv * ln
+    GM["fist"].append(caps(tuple(np.round(p, 3)), tuple(np.round(q, 3)), rr)); p = q
+GM["fist"].append(needle(tuple(np.round(p, 3)), (0.25, -0.9, -0.25), 1.9, 0.52, (0.2, 0, -0.1), 0.0))    # thumb talon, curling at the fingers
+for z in (1.04, 0.0, -1.04):                                                                   # extending claw blades
+    GM["claws"].append(needle((0.9, -3.9, z), (-0.08, -1, 0), 6.0, 0.34, (-0.3, 0, 0), 0.0))
+_tips = [c for c in GM["fist"] if c["type"] == "thorn"]
+_reach = [round(c["a"][0] + c["b"][0] * c["len"] + c["c"][0], 2) for c in _tips]
+print("v24 talon tips x:", _reach)
+assert min(_reach) >= -2.05, "a fingertip reaches into the body"
+GM = {k: [_grow_part(p, k) for p in v] for k, v in GM.items()}
+w(f"{A}/smooth/obsidian_gauntlet.json", GM)
+print("v24 grasping claw with an opposing thumb:", sum(len(v) for v in GM.values()), "smooth parts")
+
+# v24: the grappling hook is on its own key now (right-click guards in Epic Fight battle mode)
+_l = json.load(open(f"{A}/lang/en_us.json"))
+_l[f"tooltip.{MOD}.gauntlet.grapple"] = "Grapple key (default H): grappling hook (80 blocks), press again to let go"
+_l[f"key.{MOD}.grapple"] = "Gauntlet Grappling Hook"
+_l[f"key.categories.{MOD}"] = "Obsidian Arsenal"
+w(f"{A}/lang/en_us.json", _l)
+print("v24 lang for the grapple key")

@@ -1,0 +1,44 @@
+{
+ "renderer": "minecraft:base",
+ "alwaysInHand": true,
+ "transforms": {
+  "mainhand": {
+   "Tool_R": {
+    "translation": [
+     0.0,
+     -0.0579,
+     -0.1601
+    ],
+    "rotation": [
+     -84.73,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   }
+  },
+  "offhand": {
+   "Tool_L": {
+    "translation": [
+     0.0,
+     -0.0579,
+     -0.1601
+    ],
+    "rotation": [
+     -84.73,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   }
+  }
+ }
+}

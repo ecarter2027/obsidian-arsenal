@@ -91,6 +91,8 @@
  "entity.obsidian_arsenal.plasma_beam": "Plasma Beam",
  "entity.obsidian_arsenal.black_hole": "Black Hole",
  "entity.obsidian_arsenal.hellfire_stream": "Hellfire Stream",
- "tooltip.obsidian_arsenal.gauntlet.grapple": "Right-click: grappling hook (80 blocks), right-click again to let go",
- "entity.obsidian_arsenal.grapple_hook": "Grappling Hook"
+ "tooltip.obsidian_arsenal.gauntlet.grapple": "Grapple key (default H): grappling hook (80 blocks), press again to let go",
+ "entity.obsidian_arsenal.grapple_hook": "Grappling Hook",
+ "key.obsidian_arsenal.grapple": "Gauntlet Grappling Hook",
+ "key.categories.obsidian_arsenal": "Obsidian Arsenal"
 }

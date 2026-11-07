@@ -15,7 +15,7 @@ import net.minecraftforge.network.simple.SimpleChannel;
 import java.util.function.Supplier;
 
 public final class ModNetwork {
-    private static final String VERSION = "2";
+    private static final String VERSION = "3";
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             ObsidianArsenal.id("main"), () -> VERSION, VERSION::equals, VERSION::equals);
 
@@ -26,6 +26,7 @@ public final class ModNetwork {
         CHANNEL.registerMessage(id++, AttackC2S.class, AttackC2S::encode, AttackC2S::decode, AttackC2S::handle);
         CHANNEL.registerMessage(id++, PlayAnimS2C.class, PlayAnimS2C::encode, PlayAnimS2C::decode, PlayAnimS2C::handle);
         CHANNEL.registerMessage(id++, CastGlowS2C.class, CastGlowS2C::encode, CastGlowS2C::decode, CastGlowS2C::handle);
+        CHANNEL.registerMessage(id++, GrappleC2S.class, GrappleC2S::encode, GrappleC2S::decode, GrappleC2S::handle);
     }
 
     /** Play a PlayerAnimator animation (assets/obsidian_arsenal/player_animation/*.json) on this player for everyone tracking them. */
@@ -45,6 +46,19 @@ public final class ModNetwork {
         public static CastGlowS2C decode(FriendlyByteBuf buf) { return new CastGlowS2C(buf.readVarInt(), buf.readInt(), buf.readVarInt()); }
         public void handle(Supplier<NetworkEvent.Context> ctx) {
             ctx.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> com.obsidianarsenal.client.CastGlowClient.set(entityId, rgb, ticks)));
+            ctx.get().setPacketHandled(true);
+        }
+    }
+
+    /** Grapple key pressed: fire or release the gauntlet's grappling hook. */
+    public static class GrappleC2S {
+        public void encode(FriendlyByteBuf buf) {}
+        public static GrappleC2S decode(FriendlyByteBuf buf) { return new GrappleC2S(); }
+        public void handle(Supplier<NetworkEvent.Context> ctx) {
+            ctx.get().enqueueWork(() -> {
+                ServerPlayer p = ctx.get().getSender();
+                if (p != null) com.obsidianarsenal.item.ObsidianGauntletItem.grapple(p);
+            });
             ctx.get().setPacketHandled(true);
         }
     }

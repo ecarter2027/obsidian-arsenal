@@ -1,0 +1,36 @@
+plugins {
+    id 'eclipse'
+    id 'idea'
+    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+}
+
+version = mod_version
+group = 'com.obsidianarsenal.efcompat'
+base { archivesName = 'obsidian_ef_compat' }
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+minecraft {
+    mappings channel: 'official', version: minecraft_version
+}
+
+repositories {
+    // Jars in ./libs, copied by build.bat: Epic Fight, Obsidian Arsenal and GeckoLib (compile only; all three are
+    // required at runtime and come from the player's mods folder).
+    flatDir { dir 'libs' }
+}
+
+dependencies {
+    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+    compileOnly fg.deobf("blank:epic-fight:${epicfight_version}")
+    compileOnly fg.deobf("blank:obsidian_arsenal:${arsenal_version}")
+    compileOnly fg.deobf("blank:geckolib-forge-${minecraft_version}:${geckolib_version}")
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    inputs.property 'version', mod_version
+    filesMatching('META-INF/mods.toml') { expand version: mod_version }
+}
+
+tasks.named('jar', Jar).configure { finalizedBy 'reobfJar' }
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }

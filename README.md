@@ -4,7 +4,28 @@
 
 Every build is in [Releases](../../releases) and in the [`releases/`](releases) folder. Forge 1.20.1; also needs GeckoLib, PlayerAnimator, AAA Particles and Iron's Spells 'n Spellbooks.
 
-Obsidian armor, a two-mode Obsidian Gauntlet, and three new Iron's Spells schools (**Obsidian**, **Hellfire** and **Plasma**) with twelve spells.
+Obsidian armor, a two-mode Obsidian Gauntlet with a grappling hook, and three new Iron's Spells schools (**Obsidian**, **Hellfire** and **Plasma**) with twelve spells.
+
+Full feature list: [DESCRIPTION.md](DESCRIPTION.md). Version history: [CHANGELOG.md](CHANGELOG.md).
+
+## Epic Fight add-on (optional)
+
+[`obsidian_ef_compat/`](obsidian_ef_compat) is **Obsidian EF Compat**, a separate jar that gives the gauntlet a full Epic Fight
+moveset:
+- claw-and-kick combos with purple slash VFX
+- right-click guard
+- the Obsidian Impaler and Twin Meteor skills
+- the Obsidian Stretch dodge
+- battle-mode visuals for the armor
+
+Its jar is attached to each release next to the main mod. See [COMPAT_DESCRIPTION.md](COMPAT_DESCRIPTION.md).
+
+Build it with `gradle build` in that folder, after putting these jars in `obsidian_ef_compat/libs`:
+- Epic Fight 20.14.x
+- GeckoLib
+- an Obsidian Arsenal jar
+
+`tools/gen_claw_anims.py` regenerates its combos, guard and idle animations and `ClawMoves.java`.
 
 ## Required mods (all four are hard dependencies)
 
@@ -33,6 +54,7 @@ and +5% Hellfire resistance. Crafted from obsidian in the vanilla armor shapes.
 **Obsidian Gauntlet** (`CNC / OOO / ONO`: C = crying obsidian, N = netherite ingot, O = obsidian). Sneak + right-click switches mode.
 * *Mining*: pickaxe, axe, shovel and hoe in one. 3500 durability, speed 13, mining level 4 (netherite is 2031 and 9). Right-click strips logs, makes paths and tills soil.
 * *Combat*: left-click chains 7 attacks: Jab (punch), Rending Hook (claw), **Piercing Lance** (gauntlet stretches to 7.5 blocks), **Hammer Slam** (smash), Claw Rake (claw), **Seismic Reach** (stretches to 9 blocks, pulls enemies in), **Meteor Smash** (leap and crater).
+* *Grappling hook*: the grapple key (default **H**) fires an obsidian claw on a chain (80 blocks); press again to let go. Hooked blocks reel you in, hooked mobs are yanked to you.
 
 **Obsidian school**: Obsidian Spike Explosion, Obsidian Storm, Obsidian Tentacles, Purple Lightning Cloak, Obsidian Shatter,
 Indra's Arrow (charged long cast) (Scroll Forge focus: crying obsidian).

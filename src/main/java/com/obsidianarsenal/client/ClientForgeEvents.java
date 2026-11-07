@@ -32,6 +32,19 @@ import java.util.List;
 @Mod.EventBusSubscriber(modid = ObsidianArsenal.MODID, value = Dist.CLIENT)
 public class ClientForgeEvents {
 
+    /** Grapple key: ask the server to fire / release the hook while a gauntlet is held in either hand. */
+    @SubscribeEvent
+    public static void grappleKey(TickEvent.ClientTickEvent e) {
+        if (e.phase != TickEvent.Phase.END) return;
+        Minecraft mc = Minecraft.getInstance();
+        while (ClientModEvents.GRAPPLE_KEY.consumeClick()) {
+            LocalPlayer p = mc.player;
+            if (p == null || mc.screen != null) continue;
+            if (p.getMainHandItem().getItem() instanceof ObsidianGauntletItem || p.getOffhandItem().getItem() instanceof ObsidianGauntletItem)
+                ModNetwork.CHANNEL.sendToServer(new ModNetwork.GrappleC2S());
+        }
+    }
+
     /** Gauntlet in combat mode: left click sends a combo request instead of a vanilla swing. */
     @SubscribeEvent
     public static void onInteract(InputEvent.InteractionKeyMappingTriggered e) {

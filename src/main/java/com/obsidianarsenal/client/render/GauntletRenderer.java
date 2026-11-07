@@ -6,8 +6,8 @@ import software.bernie.geckolib.model.DefaultedItemGeoModel;
 import software.bernie.geckolib.renderer.GeoItemRenderer;
 
 /**
- * geo/item/obsidian_gauntlet.geo.json + animations/item/obsidian_gauntlet.animation.json + textures/item/obsidian_gauntlet.png.
- * The purple veins glow in the dark via textures/item/obsidian_gauntlet_glowmask.png.
+ * geo/item/obsidian_gauntlet.geo.json (cube-less bones that the animations drive) + smooth/obsidian_gauntlet.json:
+ * an obsidian claw growing out of the wrist, drawn by SmoothPartsLayer with the vanilla obsidian texture.
  */
 public class GauntletRenderer extends GeoItemRenderer<ObsidianGauntletItem> {
     public GauntletRenderer() {

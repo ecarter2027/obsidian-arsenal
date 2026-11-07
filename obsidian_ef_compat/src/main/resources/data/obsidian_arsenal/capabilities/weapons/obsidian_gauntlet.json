@@ -1,0 +1,15 @@
+{
+	"type": "obsidian_ef_compat:obsidian_gauntlet",
+	"attributes": {
+		"one_hand": {
+			"armor_negation": 15.0,
+			"impact": 1.2,
+			"max_strikes": 1
+		},
+		"two_hand": {
+			"armor_negation": 15.0,
+			"impact": 1.0,
+			"max_strikes": 1
+		}
+	}
+}

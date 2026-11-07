@@ -21,6 +21,8 @@ public class ConstructRenderer extends GeoEntityRenderer<ConstructEntity> {
         super(ctx, new DefaultedEntityGeoModel<>(ObsidianArsenal.id(kind.model)));
         this.kind = kind;
         this.shadowRadius = 0f;
+        // jagged OBJ spikes (smooth/<model>.json) for the kinds that have them: ground spikes, storm spikes
+        addRenderLayer(new com.obsidianarsenal.client.mesh.SmoothPartsLayer<>(this, kind.model));
     }
 
     /**

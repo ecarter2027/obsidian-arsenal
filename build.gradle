@@ -47,6 +47,13 @@ dependencies {
     implementation fg.deobf("blank:irons_lib-${minecraft_version}:${irons_lib_version}")
     runtimeOnly fg.deobf("blank:curios-forge:${curios_version}")
     runtimeOnly fg.deobf("blank:caelus-forge:${caelus_version}")
+
+    // Dev test only (-Pdev_with_epicfight=true, see run_client_epicfight.bat): Epic Fight + the Obsidian EF compat
+    // add-on in the dev client. Never a dependency of the mod itself.
+    if (project.findProperty('dev_with_epicfight') == 'true') {
+        runtimeOnly fg.deobf("blank:epic-fight:20.14.17-mc1.20.1-forge")
+        runtimeOnly fg.deobf("blank:obsidian_ef_compat:1.3.0")
+    }
 }
 
 tasks.named('processResources', ProcessResources).configure {
