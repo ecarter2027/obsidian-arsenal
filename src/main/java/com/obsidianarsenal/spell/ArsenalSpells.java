@@ -1158,4 +1158,211 @@ public final class ArsenalSpells {
         }
     }
 
+    // ====================================================================================== added in 1.0.13
+    /** Abyssal Ray - Herobrine's Void Beam, but wider: a channelled black-cored purple ray that erases what it touches. */
+    @AutoSpellConfig
+    public static class AbyssalRay extends Base {
+        private static final String TAG = "OA_AbyssalRay";
+
+        public AbyssalRay() { super("abyssal_ray", OBSIDIAN, SpellRarity.EPIC, 8, 16, CastType.CONTINUOUS, 100, 14, 3, 6, 1); }
+
+        float damage(int lvl, LivingEntity c) { return 3.5f + getSpellPower(lvl, c) * 0.4f; }
+
+        @Override public List<MutableComponent> getUniqueInfo(int lvl, LivingEntity c) {
+            return List.of(Component.translatable("ui.obsidian_arsenal.damage_per_second", Utils.stringTruncation(damage(lvl, c) * 10, 1)),
+                    range((float) com.obsidianarsenal.entity.VoidRayEntity.RANGE));
+        }
+        @Override public AnimationHolder getCastStartAnimation() { return ANIM_CHANNEL; }
+        @Override public AnimationHolder getCastFinishAnimation() { return AnimationHolder.none(); }
+
+        @Override
+        public void onCast(Level level, int lvl, LivingEntity caster, CastSource src, MagicData data) {
+            if (level instanceof ServerLevel sl) {
+                var ray = ray(sl, caster);
+                if (ray == null) {
+                    ray = com.obsidianarsenal.entity.VoidRayEntity.spawn(sl, caster, damage(lvl, caster));
+                    caster.getPersistentData().putInt(TAG, ray.getId());
+                    sl.playSound(null, caster.blockPosition(), SoundEvents.WARDEN_SONIC_CHARGE, SoundSource.PLAYERS, 1.4f, 1.3f);
+                    sl.playSound(null, caster.blockPosition(), SoundEvents.END_PORTAL_SPAWN, SoundSource.PLAYERS, 0.6f, 1.8f);
+                }
+                ray.keepAlive(damage(lvl, caster));
+            }
+            super.onCast(level, lvl, caster, src, data);
+        }
+
+        @Override
+        public void onServerCastComplete(Level level, int lvl, LivingEntity caster, MagicData data, boolean cancelled) {
+            if (level instanceof ServerLevel sl) {
+                var ray = ray(sl, caster);
+                if (ray != null) ray.discard();
+                caster.getPersistentData().remove(TAG);
+                sl.playSound(null, caster.blockPosition(), SoundEvents.BEACON_DEACTIVATE, SoundSource.PLAYERS, 1.0f, 0.6f);
+            }
+            super.onServerCastComplete(level, lvl, caster, data, cancelled);
+        }
+
+        @Nullable
+        private static com.obsidianarsenal.entity.VoidRayEntity ray(ServerLevel level, LivingEntity caster) {
+            if (!caster.getPersistentData().contains(TAG)) return null;
+            return level.getEntity(caster.getPersistentData().getInt(TAG)) instanceof com.obsidianarsenal.entity.VoidRayEntity r && r.isAlive() ? r : null;
+        }
+    }
+
+    /** Shared lookup of a caster's live Erasure orb by persistent-data tag. */
+    @Nullable
+    private static com.obsidianarsenal.entity.ErasureOrbEntity orb(ServerLevel level, LivingEntity caster, String tag) {
+        if (!caster.getPersistentData().contains(tag)) return null;
+        return level.getEntity(caster.getPersistentData().getInt(tag)) instanceof com.obsidianarsenal.entity.ErasureOrbEntity o && o.isAlive() ? o : null;
+    }
+
+    /**
+     * Erasure - charge a black orb rimmed in red at your hand, then fire it dead straight. Where it hits a block or a
+     * creature it swells a few blocks wider and erases everything inside.
+     */
+    @AutoSpellConfig
+    public static class Erasure extends Base {
+        private static final String TAG = "OA_Erasure";
+        static final int CHARGE = 24;
+
+        public Erasure() { super("erasure", PLASMA, SpellRarity.LEGENDARY, 5, 30, CastType.LONG, CHARGE, 110, 15, 8, 1); }
+
+        float damage(int lvl, LivingEntity c) { return 30f + getSpellPower(lvl, c) * 3f; }
+        float blast(int lvl) { return 3.5f + lvl * 0.4f; }
+
+        @Override public List<MutableComponent> getUniqueInfo(int lvl, LivingEntity c) { return List.of(dmg(damage(lvl, c)), radius(blast(lvl))); }
+        @Override public AnimationHolder getCastStartAnimation() { return ANIM_CHANNEL; }
+        @Override public AnimationHolder getCastFinishAnimation() { return ANIM_THRUST; }
+
+        @Override
+        public void onServerPreCast(Level level, int lvl, LivingEntity caster, MagicData data) {
+            if (level instanceof ServerLevel sl) {
+                var old = orb(sl, caster, TAG);
+                if (old != null) old.discard();
+                var o = com.obsidianarsenal.entity.ErasureOrbEntity.create(sl, caster, this, com.obsidianarsenal.entity.ErasureOrbEntity.ORB,
+                        0.7, blast(lvl), damage(lvl, caster), CHARGE);
+                caster.getPersistentData().putInt(TAG, o.getId());
+                sl.playSound(null, caster.blockPosition(), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1.2f, 0.5f);
+            }
+            super.onServerPreCast(level, lvl, caster, data);
+        }
+
+        @Override
+        public void onCast(Level level, int lvl, LivingEntity caster, CastSource src, MagicData data) {
+            if (level instanceof ServerLevel sl) {
+                var o = orb(sl, caster, TAG);
+                if (o == null) o = com.obsidianarsenal.entity.ErasureOrbEntity.create(sl, caster, this, com.obsidianarsenal.entity.ErasureOrbEntity.ORB,
+                        0.7, blast(lvl), damage(lvl, caster), 1);
+                o.fire(caster.getLookAngle());
+                caster.getPersistentData().remove(TAG);
+            }
+            super.onCast(level, lvl, caster, src, data);
+        }
+
+        @Override
+        public void onServerCastComplete(Level level, int lvl, LivingEntity caster, MagicData data, boolean cancelled) {
+            if (level instanceof ServerLevel sl) {
+                var o = orb(sl, caster, TAG);
+                if (o != null && o.phase() == com.obsidianarsenal.entity.ErasureOrbEntity.CHARGE) o.discard();
+                caster.getPersistentData().remove(TAG);
+            }
+            super.onServerCastComplete(level, lvl, caster, data, cancelled);
+        }
+    }
+
+    /**
+     * Erasure Volley - while you channel, plasma magic circles open one after another at random spots behind you;
+     * each fires a single small Erasure orb at your crosshair and fades, and the next one opens.
+     */
+    @AutoSpellConfig
+    public static class ErasureVolley extends Base {
+        private static final String TAG = "OA_ErasureVolley", NEXT = "OA_ErasureVolleyNext";
+
+        public ErasureVolley() { super("erasure_volley", PLASMA, SpellRarity.EPIC, 6, 22, CastType.CONTINUOUS, 120, 16, 3, 6, 1); }
+
+        float damage(int lvl, LivingEntity c) { return 10f + getSpellPower(lvl, c) * 1.2f; }
+        float blast(int lvl) { return 1.8f + lvl * 0.15f; }
+
+        @Override public List<MutableComponent> getUniqueInfo(int lvl, LivingEntity c) { return List.of(dmg(damage(lvl, c)), radius(blast(lvl))); }
+        @Override public AnimationHolder getCastStartAnimation() { return ANIM_CHANNEL; }
+        @Override public AnimationHolder getCastFinishAnimation() { return AnimationHolder.none(); }
+
+        @Override
+        public void onServerPreCast(Level level, int lvl, LivingEntity caster, MagicData data) {
+            caster.getPersistentData().putLong(NEXT, 0);
+            super.onServerPreCast(level, lvl, caster, data);
+        }
+
+        /** Every tick of the channel: when no circle is charging and the pause after the last shot is over, open the next. */
+        @Override
+        public void onServerCastTick(Level level, int lvl, LivingEntity caster, MagicData data) {
+            if (level instanceof ServerLevel sl && orb(sl, caster, TAG) == null && sl.getGameTime() >= caster.getPersistentData().getLong(NEXT)) {
+                var o = com.obsidianarsenal.entity.ErasureOrbEntity.create(sl, caster, this, com.obsidianarsenal.entity.ErasureOrbEntity.VOLLEY,
+                        0.32, blast(lvl), damage(lvl, caster), 7 + sl.random.nextInt(4));
+                caster.getPersistentData().putInt(TAG, o.getId());
+                o.onFired(() -> {
+                    caster.getPersistentData().remove(TAG);
+                    caster.getPersistentData().putLong(NEXT, sl.getGameTime() + 1 + sl.random.nextInt(6));
+                });
+                sl.playSound(null, o.getX(), o.getY(), o.getZ(), SoundEvents.ILLUSIONER_PREPARE_MIRROR, SoundSource.PLAYERS, 0.7f, 1.6f);
+            }
+            super.onServerCastTick(level, lvl, caster, data);
+        }
+
+        @Override
+        public void onServerCastComplete(Level level, int lvl, LivingEntity caster, MagicData data, boolean cancelled) {
+            if (level instanceof ServerLevel sl) {
+                var o = orb(sl, caster, TAG);
+                if (o != null && o.phase() == com.obsidianarsenal.entity.ErasureOrbEntity.CHARGE) o.discard();
+                caster.getPersistentData().remove(TAG);
+                caster.getPersistentData().remove(NEXT);
+            }
+            super.onServerCastComplete(level, lvl, caster, data, cancelled);
+        }
+    }
+
+    /**
+     * Erasure Grasp - an Erasure orb held telekinetically in front of your outstretched hand, following your gaze. It
+     * erases only what it passes through.
+     */
+    @AutoSpellConfig
+    public static class ErasureGrasp extends Base {
+        private static final String TAG = "OA_ErasureGrasp";
+
+        public ErasureGrasp() { super("erasure_grasp", PLASMA, SpellRarity.EPIC, 6, 20, CastType.CONTINUOUS, 140, 12, 2, 6, 1); }
+
+        float damage(int lvl, LivingEntity c) { return 4f + getSpellPower(lvl, c) * 0.5f; }
+        float size(int lvl) { return 1.3f + lvl * 0.1f; }
+
+        @Override public List<MutableComponent> getUniqueInfo(int lvl, LivingEntity c) {
+            return List.of(Component.translatable("ui.obsidian_arsenal.damage_per_second", Utils.stringTruncation(damage(lvl, c) * 10, 1)), radius(size(lvl)));
+        }
+        @Override public AnimationHolder getCastStartAnimation() { return ANIM_CHANNEL; }
+        @Override public AnimationHolder getCastFinishAnimation() { return AnimationHolder.none(); }
+
+        @Override
+        public void onCast(Level level, int lvl, LivingEntity caster, CastSource src, MagicData data) {
+            if (level instanceof ServerLevel sl) {
+                var o = orb(sl, caster, TAG);
+                if (o == null) {
+                    o = com.obsidianarsenal.entity.ErasureOrbEntity.create(sl, caster, this, com.obsidianarsenal.entity.ErasureOrbEntity.GRASP,
+                            size(lvl), size(lvl) * 1.6, damage(lvl, caster), 1);
+                    caster.getPersistentData().putInt(TAG, o.getId());
+                    sl.playSound(null, caster.blockPosition(), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1.2f, 0.6f);
+                }
+                o.keepAlive(damage(lvl, caster));
+            }
+            super.onCast(level, lvl, caster, src, data);
+        }
+
+        @Override
+        public void onServerCastComplete(Level level, int lvl, LivingEntity caster, MagicData data, boolean cancelled) {
+            if (level instanceof ServerLevel sl) {
+                var o = orb(sl, caster, TAG);
+                if (o != null) o.detonate();          // released: it pops, erasing a little wider, and fades
+                caster.getPersistentData().remove(TAG);
+            }
+            super.onServerCastComplete(level, lvl, caster, data, cancelled);
+        }
+    }
+
 }

@@ -1,5 +1,15 @@
 # Changelog
 
+## Obsidian Arsenal 1.0.13 + Obsidian EF Compat 1.3.3
+
+### New spells
+- **Abyssal Ray** (Obsidian): channel a wide void beam with a black core wrapped in purple light. It erases a tunnel of blocks and tears at every creature inside it.
+- **Erasure** (Plasma): charge a black orb rimmed in glowing red, then fire it dead straight. On impact it swells a few blocks wider and erases everything inside.
+- **Erasure Volley** (Plasma): while you channel, magic circles open one at a time behind you and each fires a small Erasure orb at your crosshair.
+- **Erasure Grasp** (Plasma): hold an Erasure orb in front of your hand and steer it with your gaze. It erases only what it passes through.
+
+Erased blocks drop nothing. Blocks are only erased with mobGriefing on, and never unbreakable or protected blocks.
+
 ## Obsidian Arsenal 1.0.12 + Obsidian EF Compat 1.3.3
 
 ### Spells

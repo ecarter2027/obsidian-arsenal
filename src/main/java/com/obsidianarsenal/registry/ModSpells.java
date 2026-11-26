@@ -48,6 +48,12 @@ public class ModSpells {
     public static final RegistryObject<AbstractSpell> PLASMA_BLINK             = reg("plasma_blink", ArsenalSpells.PlasmaBlink::new);
     public static final RegistryObject<AbstractSpell> ION_STORM                = reg("ion_storm", ArsenalSpells.IonStorm::new);
 
+    // ---- added in 1.0.13: the Abyssal Ray and the three Erasure variants ----
+    public static final RegistryObject<AbstractSpell> ABYSSAL_RAY              = reg("abyssal_ray", ArsenalSpells.AbyssalRay::new);
+    public static final RegistryObject<AbstractSpell> ERASURE                  = reg("erasure", ArsenalSpells.Erasure::new);
+    public static final RegistryObject<AbstractSpell> ERASURE_VOLLEY           = reg("erasure_volley", ArsenalSpells.ErasureVolley::new);
+    public static final RegistryObject<AbstractSpell> ERASURE_GRASP            = reg("erasure_grasp", ArsenalSpells.ErasureGrasp::new);
+
     private static RegistryObject<AbstractSpell> reg(String name, Supplier<AbstractSpell> supplier) {
         RegistryObject<AbstractSpell> ro = SPELLS.register(name, supplier);
         ALL.add(ro);

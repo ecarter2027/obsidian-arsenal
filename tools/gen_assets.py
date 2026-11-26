@@ -3002,3 +3002,46 @@ for _i, _school in enumerate(("obsidian", "hellfire", "plasma")):
     save(_o, f"{T}/entity/circle_{_school}_outer.png")
     save(_in, f"{T}/entity/circle_{_school}_inner.png")
 print("v31 magic circle textures")
+
+# =====================================================================================================
+# v32 (1.0.13): Abyssal Ray (a wide void beam in Herobrine's Void Beam style) and the three Erasure spells (a black
+#      orb rimmed in red: fired, a volley from magic circles, held telekinetically). Glow textures, lang and icons.
+# =====================================================================================================
+save(Image.new("RGBA", (16, 16), (255, 255, 255, 255)), f"{T}/entity/flat_white.png")
+_rs = np.random.default_rng(320)
+_S = 64
+_cols = _rs.random(_S) * 0.6 + 0.25
+_img = np.zeros((_S, _S), dtype=float)
+for _x in range(_S):                                   # streaks running along the beam (v), tiling both ways
+    _ph, _fr = _rs.random() * 2 * math.pi, 1 + _rs.integers(0, 3)
+    for _y in range(_S):
+        _img[_y, _x] = _cols[_x] * (0.6 + 0.4 * math.sin(2 * math.pi * _fr * _y / _S + _ph))
+_img = (_img + np.roll(_img, 1, axis=1) + np.roll(_img, -1, axis=1)) / 3
+_img = np.clip(_img / _img.max(), 0, 1) ** 1.3
+_v = (_img * 255).astype(np.uint8)
+save(Image.fromarray(np.dstack([_v, _v, _v, np.full_like(_v, 255)]), "RGBA"), f"{T}/entity/void_sheath.png")
+
+_l = json.load(open(f"{A}/lang/en_us.json"))
+for k, (n, desc, death) in {
+    "abyssal_ray": ("Abyssal Ray", "Channel a wide beam of void from your hand: a black core wrapped in purple light. It erases the blocks it passes through and tears at every creature inside it.", "%1$s was erased by %2$s's Abyssal Ray"),
+    "erasure": ("Erasure", "Charge a black orb rimmed in red, then fire it dead straight. Where it hits a block or a creature it swells a few blocks wider and erases everything inside.", "%1$s was erased by %2$s"),
+    "erasure_volley": ("Erasure Volley", "While you channel, magic circles open one after another behind you. Each fires a small Erasure orb at your crosshair, then fades as the next one opens.", "%1$s was erased by %2$s's Erasure Volley"),
+    "erasure_grasp": ("Erasure Grasp", "Hold an Erasure orb in front of your outstretched hand and steer it with your gaze. It erases only what it passes through.", "%1$s was erased by %2$s's Erasure Grasp"),
+}.items():
+    _l[f"spell.{MOD}.{k}"] = n
+    _l[f"spell.{MOD}.{k}.guide"] = desc
+    _l[f"death.attack.{MOD}.{k}"] = death
+    _l[f"death.attack.{MOD}.{k}.item"] = death + " using %3$s"
+_l[f"entity.{MOD}.void_ray"] = "Abyssal Ray"
+_l[f"entity.{MOD}.erasure_orb"] = "Erasure Orb"
+w(f"{A}/lang/en_us.json", _l)
+_PAL3 = dict(SP_PAL, w=(250, 245, 255), l=(200, 150, 255), c=(255, 70, 60), h=(255, 225, 220), K=(4, 2, 6))
+_ICONS3 = {
+ "abyssal_ray": ["", "................", "...........ooooo", "XX.....oopppppll", "Xpoopplllwwwwwww", "XpwwwwwwKKKKKKKK", "XpwwwwwwKKKKKKKK", "Xpoopplllwwwwwww", "XX.....oopppppll", "...........ooooo"],
+ "erasure": ["", ".....cccccc.....", "....cKKKKKKc....", "...cKKKKKKKKc...", "...cKKKKKKKKc...", "...cKKKKKKKKc...", "...cKKKKKKKKc...", "....cKKKKKKc....", ".....cccccc.....", "................"],
+ "erasure_volley": ["", ".rr........rr...", "r.cc.....rcc.r..", "r.cKc...r.cKc.r.", ".rcc......rcc...", "..r...rr...r....", "....rr.ccr......", "...r..cKc.r.....", "......cc..r.....", ".....r..rr......"],
+ "erasure_grasp": ["", ".........cccc...", "........cKKKKc..", "........cKKKKc..", ".........cccc...", "...www..........", "..wwwww.........", ".wwwwww.........", ".wwww...........", "XXXX............"],
+}
+for n, rows in _ICONS3.items():
+    pix([""] * 3 + rows, _PAL3, f"{T}/gui/spell_icons/{n}.png", 6)
+print("v32 abyssal ray + erasure: textures, lang, icons")

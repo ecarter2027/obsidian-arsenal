@@ -57,8 +57,8 @@ public final class CastCircles {
             Vec3 feet = p.getPosition(pt).subtract(cam);
             Vec3 look = p.getViewVector(pt);
             Vec3 hands = p.getEyePosition(pt).subtract(cam).add(look.scale(0.95)).add(0, -0.25, 0);
-            boolean beam = name.equals("plasma_beam") || name.equals("flaming_judgement");
-            boolean charged = name.equals("indras_arrow") || name.equals("railgun") || name.equals("black_hole");
+            boolean beam = name.equals("plasma_beam") || name.equals("flaming_judgement") || name.equals("abyssal_ray");
+            boolean charged = name.equals("indras_arrow") || name.equals("railgun") || name.equals("black_hole") || name.equals("erasure");
             ps.pushPose();
             MagicCircle.draw(ps, buf, school, feet.add(0, 0.03, 0), new Vec3(0, 1, 0), 1.6 * in + 0.4, spin, 0.85f * in);
             MagicCircle.draw(ps, buf, school, hands, look, (charged ? 1.1 : 0.7) * in, spin * 1.5f, 0.9f * in);

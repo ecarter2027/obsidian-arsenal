@@ -66,4 +66,14 @@ public class ModEntities {
             EntityType.Builder.<GrappleHookEntity>of(GrappleHookEntity::new, MobCategory.MISC)
                     .sized(0.4f, 0.4f).clientTrackingRange(10).updateInterval(1).fireImmune().noSave()
                     .build(ObsidianArsenal.MODID + ":grapple_hook"));
+
+    public static final RegistryObject<EntityType<com.obsidianarsenal.entity.VoidRayEntity>> VOID_RAY = ENTITIES.register("void_ray", () ->
+            EntityType.Builder.<com.obsidianarsenal.entity.VoidRayEntity>of(com.obsidianarsenal.entity.VoidRayEntity::new, MobCategory.MISC)
+                    .sized(0.5f, 0.5f).clientTrackingRange(12).updateInterval(1).fireImmune().noSave()
+                    .build(ObsidianArsenal.MODID + ":void_ray"));
+
+    public static final RegistryObject<EntityType<com.obsidianarsenal.entity.ErasureOrbEntity>> ERASURE_ORB = ENTITIES.register("erasure_orb", () ->
+            EntityType.Builder.<com.obsidianarsenal.entity.ErasureOrbEntity>of(com.obsidianarsenal.entity.ErasureOrbEntity::new, MobCategory.MISC)
+                    .sized(0.5f, 0.5f).clientTrackingRange(12).updateInterval(1).fireImmune().noSave()
+                    .build(ObsidianArsenal.MODID + ":erasure_orb"));
 }
