@@ -92,12 +92,47 @@ public final class SpellUtil {
 
     // ------------------------------------------------------------------------------------------------ Indra's Arrow
     /** 25 block radius sphere of destruction (blocks removed shell by shell, one shell per tick). */
+    /** Blows a crater of the given radius (only with mobGriefing on), shell by shell, with no effects of its own. */
+    public static void crater(ServerLevel level, Vec3 c, int radius) {
+        if (!level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) return;
+        BlockPos cb = BlockPos.containing(c);
+        for (int shell = 0; shell <= radius; shell++) {
+            final int s = shell;
+            Scheduler.later(level, s, () -> destroyShell(level, cb, c, s));
+        }
+    }
+
+    /**
+     * Throws up to {@code count} real blocks from the surface around {@code c} (within {@code radius}) as falling
+     * blocks flying outward and upward, before a crater swallows the rest (only with mobGriefing on).
+     */
+    public static void launchDebris(ServerLevel level, Vec3 c, int radius, int count) {
+        if (!level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) return;
+        var r = level.random;
+        for (int i = 0; i < count; i++) {
+            double a = r.nextDouble() * Math.PI * 2, d = Math.sqrt(r.nextDouble()) * radius;
+            int x = (int) Math.floor(c.x + Math.cos(a) * d), z = (int) Math.floor(c.z + Math.sin(a) * d);
+            int y = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z) - 1;
+            BlockPos pos = new BlockPos(x, y, z);
+            var state = level.getBlockState(pos);
+            if (state.isAir() || state.getDestroySpeed(level, pos) < 0 || !state.getFluidState().isEmpty() || level.getBlockEntity(pos) != null) continue;
+            var fb = net.minecraft.world.entity.item.FallingBlockEntity.fall(level, pos, state);
+            Vec3 out = new Vec3(x + 0.5 - c.x, 0, z + 0.5 - c.z);
+            out = out.lengthSqr() < 1e-4 ? new Vec3(r.nextGaussian(), 0, r.nextGaussian()).normalize() : out.normalize();
+            double sp = 0.5 + r.nextDouble() * 0.9;
+            fb.setDeltaMovement(out.x * sp, 0.9 + r.nextDouble() * 1.1, out.z * sp);
+            fb.dropItem = false;
+            fb.hurtMarked = true;
+        }
+    }
+
     public static void sphereBlast(ServerLevel level, Vec3 c, int radius, AbstractSpell spell, @Nullable Entity direct,
                                    @Nullable LivingEntity owner, float damage) {
         level.playSound(null, c.x, c.y, c.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 10.0f, 0.5f);
         level.playSound(null, c.x, c.y, c.z, SoundEvents.WITHER_BREAK_BLOCK, SoundSource.PLAYERS, 6.0f, 0.6f);
         Vfx.effek(level, Effek.INDRA_EXPLOSION, c, radius / 5f);
-        Vfx.spawn(level, ParticleTypes.EXPLOSION_EMITTER, c.x, c.y, c.z, 0, 0, 0);
+        Vfx.burst(level, Vfx.fx("fx_indra"), c, 80, 3.0, 1.2);
+        Vfx.burst(level, Vfx.lightning(), c, 60, 4.0, 0.8);
         Vfx.burst(level, Vfx.purple(), c, 140, 2.0, 1.4);
         Vfx.burst(level, Vfx.deepPurpleSpark(), c, 60, 1.0, 0.8);
         for (int i = 0; i < 10; i++) {   // lightning fork out of the impact

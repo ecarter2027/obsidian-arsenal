@@ -154,7 +154,7 @@ public class PlasmaBeamEntity extends Entity implements GeoEntity {
             if (t < 0 || t > len + e.getBbWidth() / 2) continue;
             double halfWidth = 0.25 * Math.min(1.0, t / (len / 3.0));   // matches the model's taper
             if (c.subtract(dir.scale(t)).length() > halfWidth + e.getBbWidth() / 2 + 0.1) continue;
-            if (SpellUtil.spellDamage(ModSpells.PLASMA_BEAM.get(), this, owner, e, damage)) e.setSecondsOnFire(3);
+            if (SpellUtil.spellDamage(ModSpells.PLASMA_BEAM.get(), this, owner, e, damage)) Vfx.burst(level(), Vfx.fx("fx_beam"), e.position().add(0, e.getBbHeight() / 2, 0), 4, 0.4, 0.3);
         }
     }
 
@@ -168,7 +168,7 @@ public class PlasmaBeamEntity extends Entity implements GeoEntity {
             Vec3 v = new Vec3(r.nextGaussian(), r.nextGaussian(), r.nextGaussian()).normalize().scale(0.18).subtract(dir.scale(0.12));
             level().addParticle(i == 0 ? Vfx.redSpark() : Vfx.plasmaSpark(), true, end.x, end.y, end.z, v.x, v.y, v.z);
         }
-        if (tickCount % 3 == 0) level().addParticle(ParticleTypes.SMOKE, end.x, end.y, end.z, 0, 0.03, 0);
+        if (tickCount % 3 == 0) level().addParticle(Vfx.fx("fx_beam"), true, end.x, end.y, end.z, 0, 0.08, 0);
         // white-hot streaks racing along the beam from the hand to the target
         for (int i = 0; i < 4; i++) {
             double t = r.nextDouble() * len * 0.8;
@@ -201,7 +201,7 @@ public class PlasmaBeamEntity extends Entity implements GeoEntity {
                     && (!sl.mayInteract(player, pos) || MinecraftForge.EVENT_BUS.post(new BlockEvent.BreakEvent(sl, pos, state, player))))
                 return;                                                          // protected: the beam ends here
             sl.destroyBlock(pos, true, owner);
-            if (++broken % 4 == 1) sl.sendParticles(ParticleTypes.LAVA, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 1, 0.2, 0.2, 0.2, 0);
+            if (++broken % 4 == 1) sl.sendParticles(Vfx.fx("fx_beam"), pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 1, 0.2, 0.2, 0.2, 0);
         }
         if (broken > 0) sl.playSound(null, owner.blockPosition(), SoundEvents.LAVA_EXTINGUISH, SoundSource.BLOCKS, 0.5f, 1.8f);
     }

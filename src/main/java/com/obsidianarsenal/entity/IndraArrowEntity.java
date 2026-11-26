@@ -117,6 +117,7 @@ public class IndraArrowEntity extends Projectile implements GeoEntity {
                     -d.x * 0.12, -d.y * 0.12, -d.z * 0.12);
         }
         level().addParticle(Vfx.deepPurpleSpark(), true, getX(), getY(), getZ(), 0, 0, 0);
+        level().addParticle(Vfx.fx("fx_indra"), true, getX(), getY(), getZ(), -getDeltaMovement().x * 0.3, -getDeltaMovement().y * 0.3, -getDeltaMovement().z * 0.3);
         if (tickCount % 2 == 0) level().addParticle(Vfx.lightning(), true, getX() + (r.nextDouble() - 0.5) * 0.8,
                 getY() + (r.nextDouble() - 0.5) * 0.8, getZ() + (r.nextDouble() - 0.5) * 0.8, 0, 0, 0);
     }

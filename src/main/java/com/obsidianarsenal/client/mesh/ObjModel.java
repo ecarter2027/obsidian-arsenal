@@ -19,15 +19,17 @@ import org.joml.Vector4f;
 
 /**
  * A small Wavefront OBJ mesh (triangles with UVs, assets/obsidian_arsenal/models/obj/<name>.obj, made by
- * tools/gen_assets.py), drawn flat-shaded into an entity vertex buffer: each triangle as a degenerate quad with its
- * face normal. Used for the jagged obsidian spikes.
+ * tools/gen_assets.py), drawn into an entity vertex buffer, each triangle as a degenerate quad. Meshes with vertex
+ * normals (vn) are shaded smooth (the v25 tentacles and crystals); without them each triangle takes its face normal
+ * (the jagged spikes).
  */
 public final class ObjModel {
     private static final Map<String, ObjModel> CACHE = new HashMap<>();
     private final float[] pos;   // 9 per triangle
     private final float[] uv;    // 6 per triangle
+    private final float[] nrm;   // 9 per triangle, or null: flat shaded
 
-    private ObjModel(float[] pos, float[] uv) { this.pos = pos; this.uv = uv; }
+    private ObjModel(float[] pos, float[] uv, float[] nrm) { this.pos = pos; this.uv = uv; this.nrm = nrm; }
 
     public static ObjModel get(String name) {
         return CACHE.computeIfAbsent(name, ObjModel::load);
@@ -35,17 +37,18 @@ public final class ObjModel {
 
     private static ObjModel load(String name) {
         ResourceLocation id = ObsidianArsenal.id("models/obj/" + name + ".obj");
-        List<float[]> v = new ArrayList<>(), vt = new ArrayList<>();
-        List<Float> p = new ArrayList<>(), t = new ArrayList<>();
+        List<float[]> v = new ArrayList<>(), vt = new ArrayList<>(), vn = new ArrayList<>();
+        List<Float> p = new ArrayList<>(), t = new ArrayList<>(), q = new ArrayList<>();
         try {
             var res = Minecraft.getInstance().getResourceManager().getResource(id);
-            if (res.isEmpty()) return new ObjModel(new float[0], new float[0]);
+            if (res.isEmpty()) return new ObjModel(new float[0], new float[0], null);
             try (BufferedReader r = new BufferedReader(new InputStreamReader(res.get().open(), StandardCharsets.UTF_8))) {
                 for (String line; (line = r.readLine()) != null; ) {
                     String[] s = line.trim().split("\\s+");
                     switch (s[0]) {
                         case "v" -> v.add(new float[]{Float.parseFloat(s[1]), Float.parseFloat(s[2]), Float.parseFloat(s[3])});
                         case "vt" -> vt.add(new float[]{Float.parseFloat(s[1]), Float.parseFloat(s[2])});
+                        case "vn" -> vn.add(new float[]{Float.parseFloat(s[1]), Float.parseFloat(s[2]), Float.parseFloat(s[3])});
                         case "f" -> {
                             for (int k = 2; k + 1 < s.length; k++) {       // fan-triangulated
                                 for (String corner : new String[]{s[1], s[k], s[k + 1]}) {
@@ -53,6 +56,8 @@ public final class ObjModel {
                                     float[] pv = v.get(Integer.parseInt(ix[0]) - 1);
                                     float[] tv = ix.length > 1 && !ix[1].isEmpty() ? vt.get(Integer.parseInt(ix[1]) - 1) : new float[]{0, 0};
                                     p.add(pv[0]); p.add(pv[1]); p.add(pv[2]); t.add(tv[0]); t.add(tv[1]);
+                                    float[] nv = ix.length > 2 && !ix[2].isEmpty() ? vn.get(Integer.parseInt(ix[2]) - 1) : null;
+                                    if (nv != null) { q.add(nv[0]); q.add(nv[1]); q.add(nv[2]); }
                                 }
                             }
                         }
@@ -66,7 +71,12 @@ public final class ObjModel {
         float[] pa = new float[p.size()], ta = new float[t.size()];
         for (int i = 0; i < pa.length; i++) pa[i] = p.get(i);
         for (int i = 0; i < ta.length; i++) ta[i] = i % 2 == 1 ? 1.0F - t.get(i) : t.get(i);   // OBJ v runs bottom-up
-        return new ObjModel(pa, ta);
+        float[] na = null;
+        if (!q.isEmpty() && q.size() == p.size()) {
+            na = new float[q.size()];
+            for (int i = 0; i < na.length; i++) na[i] = q.get(i);
+        }
+        return new ObjModel(pa, ta, na);
     }
 
     /** Draws the mesh through {@code local} (model units -> the pose's space), lit and textured as the buffer says. */
@@ -75,6 +85,7 @@ public final class ObjModel {
         Matrix3f n = new Matrix3f(pose.normal()).mul(new Matrix3f(local).invert().transpose());
         Vector4f a = new Vector4f(), b = new Vector4f(), c = new Vector4f();
         Vector3f e1 = new Vector3f(), e2 = new Vector3f(), nor = new Vector3f();
+        Vector3f na = new Vector3f(), nb = new Vector3f(), nc = new Vector3f();
         for (int i = 0, j = 0; i + 8 < pos.length; i += 9, j += 6) {
             e1.set(pos[i + 3] - pos[i], pos[i + 4] - pos[i + 1], pos[i + 5] - pos[i + 2]);
             e2.set(pos[i + 6] - pos[i], pos[i + 7] - pos[i + 1], pos[i + 8] - pos[i + 2]);
@@ -85,10 +96,17 @@ public final class ObjModel {
             m.transform(a.set(pos[i], pos[i + 1], pos[i + 2], 1));
             m.transform(b.set(pos[i + 3], pos[i + 4], pos[i + 5], 1));
             m.transform(c.set(pos[i + 6], pos[i + 7], pos[i + 8], 1));
-            vertex(vc, a, uv[j], uv[j + 1], nor, light, overlay);
-            vertex(vc, b, uv[j + 2], uv[j + 3], nor, light, overlay);
-            vertex(vc, c, uv[j + 4], uv[j + 5], nor, light, overlay);
-            vertex(vc, c, uv[j + 4], uv[j + 5], nor, light, overlay);
+            if (nrm != null) {
+                n.transform(na.set(nrm[i], nrm[i + 1], nrm[i + 2])).normalize();
+                n.transform(nb.set(nrm[i + 3], nrm[i + 4], nrm[i + 5])).normalize();
+                n.transform(nc.set(nrm[i + 6], nrm[i + 7], nrm[i + 8])).normalize();
+            } else {
+                na.set(nor); nb.set(nor); nc.set(nor);
+            }
+            vertex(vc, a, uv[j], uv[j + 1], na, light, overlay);
+            vertex(vc, b, uv[j + 2], uv[j + 3], nb, light, overlay);
+            vertex(vc, c, uv[j + 4], uv[j + 5], nc, light, overlay);
+            vertex(vc, c, uv[j + 4], uv[j + 5], nc, light, overlay);
         }
     }
 

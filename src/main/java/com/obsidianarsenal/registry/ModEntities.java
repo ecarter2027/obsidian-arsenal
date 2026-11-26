@@ -37,6 +37,11 @@ public class ModEntities {
                     .sized(0.5f, 0.5f).clientTrackingRange(8).updateInterval(1).noSave()
                     .build(ObsidianArsenal.MODID + ":obsidian_orb"));
 
+    /** A spell's 3D set piece (Railgun's orbital strike, Kirin's lightning dragon), see SpellVisualEntity. */
+    public static final RegistryObject<EntityType<com.obsidianarsenal.entity.SpellVisualEntity>> SPELL_VISUAL = ENTITIES.register("spell_visual", () ->
+            EntityType.Builder.<com.obsidianarsenal.entity.SpellVisualEntity>of(com.obsidianarsenal.entity.SpellVisualEntity::new, MobCategory.MISC)
+                    .sized(0.5f, 0.5f).clientTrackingRange(16).updateInterval(20).noSave().fireImmune().build("spell_visual"));
+
     public static final RegistryObject<EntityType<IndraArrowEntity>> INDRA_ARROW = ENTITIES.register("indra_arrow", () ->
             EntityType.Builder.<IndraArrowEntity>of(IndraArrowEntity::new, MobCategory.MISC)
                     .sized(0.6f, 0.6f).clientTrackingRange(16).updateInterval(1).fireImmune().noSave()

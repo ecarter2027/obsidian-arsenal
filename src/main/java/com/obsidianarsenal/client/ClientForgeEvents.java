@@ -68,6 +68,7 @@ public class ClientForgeEvents {
         double x, y, z;
         float bodyYaw, headYaw, headPitch, limb, limbSpeed;
         boolean crouch;
+        Object pose;               // Epic Fight pose snapshot (GhostHook), or null
         int life = GHOST_LIFE;
     }
 
@@ -92,6 +93,7 @@ public class ClientForgeEvents {
             g.limb = ap.walkAnimation.position();
             g.limbSpeed = ap.walkAnimation.speed();
             g.crouch = ap.isCrouching();
+            if (GhostHook.impl != null) g.pose = GhostHook.impl.capture(ap);
             GHOSTS.add(g);
         }
     }
@@ -111,6 +113,11 @@ public class ClientForgeEvents {
             float alpha = 0.55f * g.life / GHOST_LIFE;
             ps.pushPose();
             ps.translate(g.x - cam.x, g.y - cam.y, g.z - cam.z);
+            if (g.pose != null && GhostHook.impl != null) {      // Epic Fight's mesh, in the pose it really had
+                GhostHook.impl.render(g.pose, g.player, ps, buf, 0.62f, 0.2f, 1.0f, alpha);
+                ps.popPose();
+                continue;
+            }
             ps.mulPose(Axis.YP.rotationDegrees(180f - g.bodyYaw));
             ps.scale(-1f, -1f, 1f);
             ps.translate(0f, -1.501f, 0f);

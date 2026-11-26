@@ -66,7 +66,10 @@ public class ObsidianOrbProjectile extends ThrowableProjectile implements GeoEnt
         Vfx.effek(sl, Effek.OBSIDIAN_SPIKE_ERUPTION, c, 2.0f);
         Vfx.burst(sl, Vfx.obsidianChunk(), c.add(0, 0.4, 0), 40, 1.5, 0.35);
         Vfx.ring(sl, Vfx.purpleSpark(), c, 2.0, 24, 0.25, 0.05);
-        Vfx.spawn(sl, ParticleTypes.EXPLOSION, c.x, c.y + 0.3, c.z, 0, 0, 0);
+        Vfx.shockwave(sl, Vfx.purpleSpark(), Vfx.deepPurpleSpark(), c, 5.5, 8);     // the eruption's shockwave
+        Vfx.burst(sl, Vfx.purple(), c.add(0, 0.6, 0), 24, 1.0, 0.25);
+        Vfx.burst(sl, Vfx.fx("fx_spike_explosion"), c.add(0, 0.5, 0), 40, 1.2, 0.55);
+        com.obsidianarsenal.entity.SpellVisualEntity.flash(sl, 0, c.add(0, 0.8, 0), 2.0, 12);
 
         for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, new AABB(c, c).inflate(3.4, 2.0, 3.4), t -> SpellUtil.canHarm(owner, t)))
             SpellUtil.spellDamage(spell, this, owner, e, damage);

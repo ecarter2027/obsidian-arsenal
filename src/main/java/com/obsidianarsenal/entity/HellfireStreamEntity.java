@@ -113,7 +113,7 @@ public class HellfireStreamEntity extends Entity implements GeoEntity {
             double t = c.dot(look);
             if (t < 0 || t > range + e.getBbWidth() / 2) continue;
             if (c.subtract(look.scale(t)).length() > 0.6 + t * 0.14 + e.getBbWidth() / 2) continue;
-            if (SpellUtil.spellDamage(ModSpells.FLAMING_JUDGEMENT.get(), this, owner, e, damage)) e.setSecondsOnFire(10);
+            if (SpellUtil.spellDamage(ModSpells.FLAMING_JUDGEMENT.get(), this, owner, e, damage)) Vfx.burst(level(), Vfx.fx("fx_judgement"), e.position().add(0, e.getBbHeight() / 2, 0), 4, 0.4, 0.3);
         }
     }
 

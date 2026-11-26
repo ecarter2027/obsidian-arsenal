@@ -40,5 +40,26 @@
     ]
    }
   }
+ },
+ "trail": {
+  "color": [
+   176,
+   84,
+   255
+  ],
+  "begin_pos": [
+   0.0,
+   -0.62,
+   0.26
+  ],
+  "end_pos": [
+   0.0,
+   -0.62,
+   -0.26
+  ],
+  "lifetime": 7,
+  "interpolations": 6,
+  "texture_path": "obsidian_arsenal:textures/particle/claw_trail.png",
+  "particle_type": "epicfight:swing_trail"
  }
 }

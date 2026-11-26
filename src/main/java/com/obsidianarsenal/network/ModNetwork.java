@@ -15,7 +15,7 @@ import net.minecraftforge.network.simple.SimpleChannel;
 import java.util.function.Supplier;
 
 public final class ModNetwork {
-    private static final String VERSION = "3";
+    private static final String VERSION = "4";
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             ObsidianArsenal.id("main"), () -> VERSION, VERSION::equals, VERSION::equals);
 
@@ -27,6 +27,7 @@ public final class ModNetwork {
         CHANNEL.registerMessage(id++, PlayAnimS2C.class, PlayAnimS2C::encode, PlayAnimS2C::decode, PlayAnimS2C::handle);
         CHANNEL.registerMessage(id++, CastGlowS2C.class, CastGlowS2C::encode, CastGlowS2C::decode, CastGlowS2C::handle);
         CHANNEL.registerMessage(id++, GrappleC2S.class, GrappleC2S::encode, GrappleC2S::decode, GrappleC2S::handle);
+        CHANNEL.registerMessage(id++, CutsceneS2C.class, CutsceneS2C::encode, CutsceneS2C::decode, CutsceneS2C::handle);
     }
 
     /** Play a PlayerAnimator animation (assets/obsidian_arsenal/player_animation/*.json) on this player for everyone tracking them. */
@@ -46,6 +47,28 @@ public final class ModNetwork {
         public static CastGlowS2C decode(FriendlyByteBuf buf) { return new CastGlowS2C(buf.readVarInt(), buf.readInt(), buf.readVarInt()); }
         public void handle(Supplier<NetworkEvent.Context> ctx) {
             ctx.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> com.obsidianarsenal.client.CastGlowClient.set(entityId, rgb, ticks)));
+            ctx.get().setPacketHandled(true);
+        }
+    }
+
+    /** Plays a spell cutscene on this caster's own screen (client/Cutscene). Only players get one. */
+    public static void cutscene(net.minecraft.world.entity.LivingEntity caster, String kind, net.minecraft.world.phys.Vec3 target) {
+        if (caster instanceof ServerPlayer sp)
+            CHANNEL.send(PacketDistributor.PLAYER.with(() -> sp), new CutsceneS2C(kind, caster.getX(), caster.getY(), caster.getZ(), caster.getYRot(), target.x, target.y, target.z));
+    }
+
+    public static class CutsceneS2C {
+        private final String kind;
+        private final double ox, oy, oz, tx, ty, tz;
+        private final float yaw;
+        public CutsceneS2C(String kind, double ox, double oy, double oz, float yaw, double tx, double ty, double tz) {
+            this.kind = kind; this.ox = ox; this.oy = oy; this.oz = oz; this.yaw = yaw; this.tx = tx; this.ty = ty; this.tz = tz;
+        }
+        public void encode(FriendlyByteBuf b) { b.writeUtf(kind); b.writeDouble(ox); b.writeDouble(oy); b.writeDouble(oz); b.writeFloat(yaw); b.writeDouble(tx); b.writeDouble(ty); b.writeDouble(tz); }
+        public static CutsceneS2C decode(FriendlyByteBuf b) { return new CutsceneS2C(b.readUtf(), b.readDouble(), b.readDouble(), b.readDouble(), b.readFloat(), b.readDouble(), b.readDouble(), b.readDouble()); }
+        public void handle(Supplier<NetworkEvent.Context> ctx) {
+            ctx.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> com.obsidianarsenal.client.Cutscene.play(kind,
+                    new net.minecraft.world.phys.Vec3(ox, oy, oz), yaw, new net.minecraft.world.phys.Vec3(tx, ty, tz))));
             ctx.get().setPacketHandled(true);
         }
     }

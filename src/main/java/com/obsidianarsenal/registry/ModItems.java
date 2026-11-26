@@ -40,9 +40,19 @@ public class ModItems {
                         out.accept(OBSIDIAN_CHESTPLATE.get());
                         out.accept(OBSIDIAN_LEGGINGS.get());
                         out.accept(OBSIDIAN_BOOTS.get());
-                        // The 10 spell scrolls (Iron's own Scroll item, max level). Iron's Scrolls tab also lists every level.
-                        for (RegistryObject<AbstractSpell> spell : ModSpells.ALL) {
-                            AbstractSpell s = spell.get();
+                        // Every spell's scroll (Iron's own Scroll item, max level), grouped by school - Obsidian, Hellfire,
+                        // Plasma - and within a school from the commonest spell to the rarest. Iron's Scrolls tab lists every level.
+                        java.util.List<String> schools = java.util.List.of(ModSchools.OBSIDIAN_RESOURCE.toString(),
+                                ModSchools.HELLFIRE_RESOURCE.toString(), ModSchools.PLASMA_RESOURCE.toString());
+                        java.util.List<AbstractSpell> sorted = new java.util.ArrayList<>();
+                        for (RegistryObject<AbstractSpell> spell : ModSpells.ALL) sorted.add(spell.get());
+                        sorted.sort(java.util.Comparator
+                                .comparingInt((AbstractSpell s) -> {
+                                    int i = schools.indexOf(s.getSchoolType().getId().toString());
+                                    return i < 0 ? schools.size() : i;
+                                })
+                                .thenComparing(s -> s.getMinRarity()));
+                        for (AbstractSpell s : sorted) {
                             ItemStack scroll = new ItemStack(ItemRegistry.SCROLL.get());
                             ISpellContainer.createScrollContainer(s, s.getMaxLevel(), scroll).save(scroll);
                             out.accept(scroll);

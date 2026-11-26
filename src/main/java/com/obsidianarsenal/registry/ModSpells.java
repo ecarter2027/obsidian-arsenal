@@ -32,6 +32,21 @@ public class ModSpells {
     // ---- Plasma school ----
     public static final RegistryObject<AbstractSpell> PLASMA_BEAM              = reg("plasma_beam", ArsenalSpells.PlasmaBeam::new);
     public static final RegistryObject<AbstractSpell> BLACK_HOLE               = reg("black_hole", ArsenalSpells.BlackHole::new);
+    // ---- added in 1.0.12 ----
+    public static final RegistryObject<AbstractSpell> OBSIDIAN_WALL            = reg("obsidian_wall", ArsenalSpells.ObsidianWall::new);
+    public static final RegistryObject<AbstractSpell> INFERNAL_NOVA            = reg("infernal_nova", ArsenalSpells.InfernalNova::new);
+    public static final RegistryObject<AbstractSpell> PLASMA_BARRAGE           = reg("plasma_barrage", ArsenalSpells.PlasmaBarrage::new);
+    // ---- added in 1.0.13 ----
+    public static final RegistryObject<AbstractSpell> KIRIN                    = reg("kirin", ArsenalSpells.Kirin::new);
+    public static final RegistryObject<AbstractSpell> OBSIDIAN_LANCE_RAIN      = reg("obsidian_lance_rain", ArsenalSpells.ObsidianLanceRain::new);
+    public static final RegistryObject<AbstractSpell> SHARD_STEP               = reg("shard_step", ArsenalSpells.ShardStep::new);
+    public static final RegistryObject<AbstractSpell> GLASS_PRISON             = reg("glass_prison", ArsenalSpells.GlassPrison::new);
+    public static final RegistryObject<AbstractSpell> KAGUTSUCHI               = reg("kagutsuchi", ArsenalSpells.Kagutsuchi::new);
+    public static final RegistryObject<AbstractSpell> HELLBRAND                = reg("hellbrand", ArsenalSpells.Hellbrand::new);
+    public static final RegistryObject<AbstractSpell> INFERNAL_CHAINS          = reg("infernal_chains", ArsenalSpells.InfernalChains::new);
+    public static final RegistryObject<AbstractSpell> RAILGUN                  = reg("railgun", ArsenalSpells.Railgun::new);
+    public static final RegistryObject<AbstractSpell> PLASMA_BLINK             = reg("plasma_blink", ArsenalSpells.PlasmaBlink::new);
+    public static final RegistryObject<AbstractSpell> ION_STORM                = reg("ion_storm", ArsenalSpells.IonStorm::new);
 
     private static RegistryObject<AbstractSpell> reg(String name, Supplier<AbstractSpell> supplier) {
         RegistryObject<AbstractSpell> ro = SPELLS.register(name, supplier);

@@ -125,11 +125,28 @@ public final class Vfx {
         }
     }
 
+    /** (v27) Not a circle any more: a sharp starburst of {@code count} particles flying straight out from the centre
+     *  toward {@code radius} (the streak sprites point along their flight, so it reads as radiating spikes). */
     public static void ring(Level level, ParticleOptions p, Vec3 c, double radius, int count, double outSpeed, double up) {
+        var r = level.random;
+        double speed = Math.max(outSpeed, 0.12) + radius * 0.09;
         for (int i = 0; i < count; i++) {
-            double a = (Math.PI * 2 * i) / count;
-            double cx = Math.cos(a), cz = Math.sin(a);
-            spawn(level, p, c.x + cx * radius, c.y + 0.1, c.z + cz * radius, cx * outSpeed, up, cz * outSpeed);
+            double a = (Math.PI * 2 * i) / count + r.nextDouble() * 0.2;
+            double cx = Math.cos(a), cz = Math.sin(a), k = 0.8 + r.nextDouble() * 0.4;
+            spawn(level, p, c.x + cx * 0.3, c.y + 0.15, c.z + cz * 0.3, cx * speed * k, up + r.nextDouble() * 0.04, cz * speed * k);
+        }
+    }
+
+    /** A spell's own signature particle (FxList / tools/gen_fx.py), e.g. fx("fx_kirin"). */
+    public static ParticleOptions fx(String name) { return com.obsidianarsenal.registry.ModParticles.fx(name); }
+
+    /** Straight jagged cracks of {@code p} radiating along the ground from {@code c}. */
+    public static void cracks(Level level, ParticleOptions p, Vec3 c, double length, int spokes) {
+        var r = level.random;
+        for (int i = 0; i < spokes; i++) {
+            double a = Math.PI * 2 * i / spokes + r.nextDouble() * 0.5;
+            Vec3 end = c.add(Math.cos(a) * length * (0.6 + r.nextDouble() * 0.4), 0.1, Math.sin(a) * length * (0.6 + r.nextDouble() * 0.4));
+            line(level, p, c.add(0, 0.1, 0), end, 0.35, 0.15);
         }
     }
 
@@ -143,6 +160,24 @@ public final class Vfx {
             spawn(level, p, a.x + n.x * t + (r.nextDouble() - 0.5) * jitter,
                     a.y + n.y * t + (r.nextDouble() - 0.5) * jitter,
                     a.z + n.z * t + (r.nextDouble() - 0.5) * jitter, 0, 0.005, 0);
+        }
+    }
+
+    /**
+     * An expanding shockwave: rings of {@code p} (and a fainter trailing ring of {@code trail}) growing from the centre
+     * out to {@code maxRadius} over {@code steps} server ticks, staged with the Scheduler.
+     */
+    public static void shockwave(net.minecraft.server.level.ServerLevel level, ParticleOptions p, ParticleOptions trail, Vec3 c, double maxRadius, int steps) {
+        ring(level, p, c, maxRadius, (int) (18 + maxRadius * 6), 0.1, 0.03);
+        if (trail != null) com.obsidianarsenal.util.Scheduler.later(level, 2, () -> cracks(level, trail, c, maxRadius, 7));
+    }
+
+    /** (v27) A tight column of {@code p} rising straight up from a point (no spiral). */
+    public static void spiral(Level level, ParticleOptions p, Vec3 base, double radius, double height, int count) {
+        var r = level.random;
+        for (int i = 0; i < count; i++) {
+            double t = r.nextDouble();
+            spawn(level, p, base.x + (r.nextDouble() - 0.5) * radius, base.y + t * height, base.z + (r.nextDouble() - 0.5) * radius, 0, 0.06 + r.nextDouble() * 0.05, 0);
         }
     }
 

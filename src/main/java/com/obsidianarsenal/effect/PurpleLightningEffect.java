@@ -59,7 +59,7 @@ public class PurpleLightningEffect extends MobEffect {
             for (int i = 0; i < 3; i++)
                 Vfx.spawn(level, i == 0 ? Vfx.deepPurpleSpark() : Vfx.purple(), back.x + (r.nextDouble() - 0.5) * w,
                         back.y + r.nextDouble() * h, back.z + (r.nextDouble() - 0.5) * w, 0, 0.01, 0);
-            Vfx.spawn(level, ParticleTypes.ELECTRIC_SPARK, e.getX(), e.getY() + 0.05, e.getZ(), 0, 0.05, 0);
+            Vfx.spawn(level, Vfx.fx("fx_cloak"), e.getX(), e.getY() + 0.05, e.getZ(), 0, 0.05, 0);
         }
     }
 }

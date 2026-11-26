@@ -47,6 +47,7 @@ public class ClientModEvents {
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers e) {
         for (ConstructEntity.Kind k : ConstructEntity.Kind.values())
             e.registerEntityRenderer(ModEntities.CONSTRUCTS.get(k).get(), ctx -> new ConstructRenderer(ctx, k));
+        e.registerEntityRenderer(ModEntities.SPELL_VISUAL.get(), com.obsidianarsenal.client.render.SpellVisualRenderer::new);
         e.registerEntityRenderer(ModEntities.OBSIDIAN_ORB.get(), ctx -> new ProjectileGeoRenderer<>(ctx, "obsidian_orb", false));
         e.registerEntityRenderer(ModEntities.INDRA_ARROW.get(), ctx -> new ProjectileGeoRenderer<>(ctx, "indra_arrow", true));
         e.registerEntityRenderer(ModEntities.HELLFIRE_STREAM.get(), HellfireStreamRenderer::new);
@@ -57,15 +58,9 @@ public class ClientModEvents {
 
     @SubscribeEvent
     public static void registerParticles(RegisterParticleProvidersEvent e) {
-        e.registerSpriteSet(ModParticles.HELLFIRE.get(), GlowParticle.provider(GlowParticle.FLAME));
-        e.registerSpriteSet(ModParticles.AMATERASU.get(), GlowParticle.provider(GlowParticle.BLACK));
-        e.registerSpriteSet(ModParticles.PURPLE_FLAME.get(), GlowParticle.provider(GlowParticle.FLAME));
-        e.registerSpriteSet(ModParticles.PURPLE_SPARK.get(), GlowParticle.provider(GlowParticle.SPARK));
-        e.registerSpriteSet(ModParticles.DEEP_PURPLE_SPARK.get(), GlowParticle.provider(GlowParticle.BIG_GLOW));
-        e.registerSpriteSet(ModParticles.RED_SPARK.get(), GlowParticle.provider(GlowParticle.EMBER));
-        e.registerSpriteSet(ModParticles.PURPLE_LIGHTNING.get(), GlowParticle.provider(GlowParticle.LIGHTNING));
-        e.registerSpriteSet(ModParticles.PLASMA_SPARK.get(), GlowParticle.provider(GlowParticle.SPARK));
-        e.registerSpriteSet(ModParticles.VOID_WISP.get(), GlowParticle.provider(GlowParticle.WISP));
+        // v27: every particle is a crisp SharpParticle, styled per type (tools/gen_fx.py -> FxList)
+        for (com.obsidianarsenal.registry.FxList.Entry fx : com.obsidianarsenal.registry.FxList.ALL)
+            e.registerSpriteSet(ModParticles.BY_NAME.get(fx.name()).get(), SharpParticle.provider(fx.style()));
     }
 
     /** Core shader for the black hole's gravitational-lensing distortion. */

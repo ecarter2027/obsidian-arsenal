@@ -18,7 +18,26 @@ import yesman.epicfight.world.capabilities.item.CapabilityItem.Styles;
 import yesman.epicfight.world.capabilities.item.CapabilityItem.WeaponCategories;
 
 public final class GauntletMoveset {
+   /** Epic Fight Dawnday's hookclaws: when that mod is installed the gauntlet fights with its moveset. */
+   public static final String HOOKCLAWS = "epicfight_dd:hookclaws";
+
+   /**
+    * The gauntlet's weapon type. With Epic Fight Dawnday installed it is Dawnday's own hookclaws moveset (combos,
+    * one-handed and dual styles, dash and air attacks, idle, walk, guard, parries and its skills), looked up from
+    * Epic Fight's weapon type registry at the time the capability is built, so nothing of Dawnday is copied here.
+    * Without Dawnday it falls back to this add-on's own claw moveset (OWN).
+    */
    public static final Function<Item, Builder> PRESET = item -> {
+      if (net.minecraftforge.fml.ModList.get().isLoaded("epicfight_dd")) {
+         Function<Item, Builder> hookclaws = yesman.epicfight.world.capabilities.item.WeaponTypeReloadListener.get(HOOKCLAWS);
+         if (hookclaws != null) {
+            return hookclaws.apply(item);
+         }
+      }
+      return GauntletMoveset.OWN.apply(item);
+   };
+
+   public static final Function<Item, Builder> OWN = item -> {
       yesman.epicfight.world.capabilities.item.WeaponCapability.Builder builder = WeaponCapability.builder()
          .category(WeaponCategories.FIST)
          .styleProvider(patch -> dualWielding(patch) ? Styles.TWO_HAND : Styles.ONE_HAND)

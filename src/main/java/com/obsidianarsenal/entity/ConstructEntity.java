@@ -171,7 +171,6 @@ public class ConstructEntity extends Entity implements GeoEntity {
         AABB box = new AABB(getX() - r, getY() - 0.3, getZ() - r, getX() + r, getY() + kind.height, getZ() + r);
         for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, box, t -> SpellUtil.canHarm(owner, t))) {
             if (SpellUtil.spellDamage(kind.spell.get(), this, owner, e, damage)) {
-                if (kind.fire) e.setSecondsOnFire(8);
                 if (kind == Kind.SPIKE || kind == Kind.SHARD) {
                     e.setDeltaMovement(e.getDeltaMovement().add(0, 0.45, 0));
                     e.hurtMarked = true;
@@ -219,7 +218,7 @@ public class ConstructEntity extends Entity implements GeoEntity {
                     double rad = 0.5 + 0.35 * Math.sin(h * 1.3);
                     level().addParticle(Vfx.hellfire(), getX() + Math.cos(a) * rad, getY() + h, getZ() + Math.sin(a) * rad, 0, 0.06, 0);
                 }
-                if (tickCount % 4 == 0) level().addParticle(ParticleTypes.LAVA, getX(), getY() + r.nextDouble() * 2, getZ(), 0, 0, 0);
+                if (tickCount % 4 == 0) level().addParticle(Vfx.fx("fx_columns"), true, getX(), getY() + r.nextDouble() * 2, getZ(), 0, 0.12, 0);
             }
             case RING -> {
                 // The three solid rings tumble about their X axes and together sweep a sphere around the

@@ -82,16 +82,22 @@ public final class BlackHoleLensRenderer {
         copyScene(mc);
         RenderSystem.setShader(() -> lensShader);
         RenderSystem.setShaderTexture(0, sceneCopy.getColorTextureId());
+        RenderSystem.setShaderTexture(1, sceneCopy.getDepthTextureId());
+        lensShader.safeGetUniform("UseDepth").set(1.0f);
         RenderSystem.enableDepthTest();
         RenderSystem.depthMask(false);
         RenderSystem.disableCull();
 
         Matrix4f m = e.getPoseStack().last().pose();
+        Matrix4f proj = e.getProjectionMatrix();
         Vector3f left = cam.getLeftVector(), up = cam.getUpVector();
         for (BlackHoleEntity h : holes) {
             float r = LENS_RADIUS * h.sizeFactor(pt) * h.tierScale();
             Vec3 c = h.getPosition(pt).subtract(cp);
             lensShader.safeGetUniform("Tilt").set(tilt(cp, h.getPosition(pt)));
+            // the hole centre's value in the depth buffer: lensed samples nearer than this are foreground
+            Vector4f clip = proj.transform(new Matrix4f(m).transform(new Vector4f((float) c.x, (float) c.y, (float) c.z, 1f)));
+            lensShader.safeGetUniform("HoleDepth").set(clip.w > 1e-4f ? Math.min(1f, Math.max(0f, clip.z / clip.w * 0.5f + 0.5f)) : 1f);
             BufferBuilder bb = Tesselator.getInstance().getBuilder();
             bb.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
             float rx = -left.x() * r, ry = -left.y() * r, rz = -left.z() * r;   // camera right * r
@@ -166,6 +172,8 @@ public final class BlackHoleLensRenderer {
         RenderSystem.disableCull();
         RenderSystem.setShader(() -> lensShader);
         RenderSystem.setShaderTexture(0, sceneCopy.getColorTextureId());
+        RenderSystem.setShaderTexture(1, sceneCopy.getColorTextureId());
+        lensShader.safeGetUniform("UseDepth").set(0.0f);   // no depth buffer once a shader pack has finished the frame
 
         for (ScreenHole h : PENDING) {
             lensShader.safeGetUniform("Tilt").set(h.tilt());
@@ -195,13 +203,16 @@ public final class BlackHoleLensRenderer {
         RenderTarget main = mc.getMainRenderTarget();
         if (sceneCopy == null || sceneCopy.width != main.width || sceneCopy.height != main.height) {
             if (sceneCopy != null) sceneCopy.destroyBuffers();
-            sceneCopy = new TextureTarget(main.width, main.height, false, Minecraft.ON_OSX);
+            sceneCopy = new TextureTarget(main.width, main.height, true, Minecraft.ON_OSX);
             sceneCopy.setFilterMode(GL11.GL_LINEAR);
         }
         GlStateManager._glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, main.frameBufferId);
         GlStateManager._glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER, sceneCopy.frameBufferId);
         GlStateManager._glBlitFrameBuffer(0, 0, main.width, main.height, 0, 0, sceneCopy.width, sceneCopy.height,
                 GL11.GL_COLOR_BUFFER_BIT, GL11.GL_NEAREST);
+        // and the depth, so the lens can tell what is behind the hole from what is in front of it
+        GlStateManager._glBlitFrameBuffer(0, 0, main.width, main.height, 0, 0, sceneCopy.width, sceneCopy.height,
+                GL11.GL_DEPTH_BUFFER_BIT, GL11.GL_NEAREST);
         main.bindWrite(false);
     }
 

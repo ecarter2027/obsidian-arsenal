@@ -31,6 +31,21 @@ public class ModParticles {
     /** Jagged purple-white electric crackle (lightning). */
     public static final RegistryObject<SimpleParticleType> PURPLE_LIGHTNING = reg("purple_lightning");
 
+    /** v27: every particle type by name (the shared ones above plus each spell's signature fx_*), see FxList. */
+    public static final java.util.Map<String, RegistryObject<SimpleParticleType>> BY_NAME = new java.util.LinkedHashMap<>();
+
+    static {
+        BY_NAME.put("hellfire_flame", HELLFIRE); BY_NAME.put("amaterasu_flame", AMATERASU); BY_NAME.put("purple_flame", PURPLE_FLAME);
+        BY_NAME.put("purple_spark", PURPLE_SPARK); BY_NAME.put("deep_purple_spark", DEEP_PURPLE_SPARK); BY_NAME.put("red_spark", RED_SPARK);
+        BY_NAME.put("plasma_spark", PLASMA_SPARK); BY_NAME.put("void_wisp", VOID_WISP); BY_NAME.put("purple_lightning", PURPLE_LIGHTNING);
+        for (FxList.Entry e : FxList.ALL) BY_NAME.computeIfAbsent(e.name(), ModParticles::reg);
+    }
+
+    /** A particle type by name (FxList / gen_fx.py), e.g. fx("fx_kirin"). */
+    public static SimpleParticleType fx(String name) {
+        return BY_NAME.get(name).get();
+    }
+
     private static RegistryObject<SimpleParticleType> reg(String name) {
         // 'true' = always render, even past the vanilla particle distance limiter
         return PARTICLES.register(name, () -> new SimpleParticleType(true));

@@ -1,5 +1,28 @@
 # Changelog
 
+## Obsidian Arsenal 1.0.12 + Obsidian EF Compat 1.3.3
+
+### Spells
+- **20 new spells** across Obsidian, Hellfire and Plasma, for 25 in all, including the Plasma **Railgun** orbital strike and **Kirin**.
+- **Railgun** is now a full cinematic: a letterboxed 7-shot cutscene with zoom punches and camera shake, a glowing red/white 3D orbital cannon, a bloom beam with lightning arcs, glowing cracks, a molten crater and flying debris. It destroys far more terrain when mobGriefing is on.
+- **Kirin**: a 3D lightning dragon dives out of a storm cloud onto the target.
+- **Magic circles** for each school appear under and in front of the caster while casting, and on area spells like Ion Storm, Lance Rain, Nova, Glass Prison and Hellbrand.
+- **Glowing flashes** on Hellbrand, Plasma Blink, Infernal Nova, Shard Step, Ion Storm, Kirin, the obsidian orb and Amaterasu, which flashes black.
+- New sharp anime-style particles replace the fire effects. Tentacles and shards use smooth 3D models.
+- Every spell has a short description in its scroll tooltip.
+- Plasma is now red and white, on both its scrolls and its circles.
+- Scroll textures now match Iron's Spells style.
+- The creative tab is sorted by school, then rarity.
+- Cutscenes for the big spells (sneak to skip), and Iron's own cast animations.
+
+### Fixes
+- Cast poses no longer stay stuck until you cast another spell.
+- The black hole lens no longer smears the player standing in front of it.
+
+### Epic Fight compatibility (Obsidian EF Compat 1.3.3)
+- Afterimages on dashes and spells, claw slash trails, and a Dawnday hookclaws moveset for the gauntlet.
+- Fixed a crash from offhand attribute modifiers.
+
 ## Obsidian Arsenal 1.0.11 + Obsidian EF Compat 1.3.0
 
 ### Obsidian Gauntlet
