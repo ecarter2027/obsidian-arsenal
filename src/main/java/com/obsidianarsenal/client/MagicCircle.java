@@ -46,6 +46,7 @@ public final class MagicCircle {
      */
     public static void draw(PoseStack ps, MultiBufferSource buf, int school, Vec3 c, Vec3 normal, double r, float spin, float alpha) {
         if (alpha <= 0.01f || r <= 0.01) return;
+        school = Math.floorMod(school, COLORS.length);   // (school 3 = black is a flash colour, not a circle)
         Vec3 n = normal.normalize();
         Vec3 ref = Math.abs(n.y) < 0.95 ? new Vec3(0, 1, 0) : new Vec3(1, 0, 0);
         Vec3 u = n.cross(ref).normalize(), v = n.cross(u).normalize();

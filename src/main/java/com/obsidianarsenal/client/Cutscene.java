@@ -49,7 +49,7 @@ public final class Cutscene {
     /** Starts a cutscene (client): kind, the caster's position and facing, and the spell's target point. */
     public static void play(String kind, Vec3 origin, float yaw, Vec3 target) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null) return;
+        if (mc.player == null || !com.obsidianarsenal.OaConfig.cutscene(kind)) return;
         Vec3 f = Vec3.directionFromRotation(0, yaw);
         Vec3 s = new Vec3(-f.z, 0, f.x);
         Vec3 eye = origin.add(0, 1.6, 0), chest = origin.add(0, 1.2, 0);
@@ -166,13 +166,13 @@ public final class Cutscene {
     /** The HUD is hidden during a cutscene (the letterbox bars are drawn instead). */
     @SubscribeEvent
     public static void hideHud(net.minecraftforge.client.event.RenderGuiOverlayEvent.Pre event) {
-        if (keys != null) event.setCanceled(true);
+        if (keys != null && com.obsidianarsenal.OaConfig.HIDE_HUD.get()) event.setCanceled(true);
     }
 
     @SubscribeEvent
     public static void letterbox(net.minecraftforge.client.event.RenderGuiEvent.Post event) {
         float b = bars(event.getPartialTick());
-        if (b <= 0) return;
+        if (b <= 0 || !com.obsidianarsenal.OaConfig.LETTERBOX.get()) return;
         var g = event.getGuiGraphics();
         int w = g.guiWidth(), h = g.guiHeight(), bar = Math.round(h * 0.12f * b);
         g.fill(0, 0, w, bar, 0xFF000000);
@@ -181,7 +181,7 @@ public final class Cutscene {
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void fov(ViewportEvent.ComputeFov event) {
-        if (keys == null) return;
+        if (keys == null || !com.obsidianarsenal.OaConfig.FOV_EFFECTS.get()) return;
         float t = Math.min(length, age + (float) event.getPartialTick());
         Key a = keys.get(0), b = a;
         for (int i = 0; i + 1 < keys.size(); i++) {
@@ -208,6 +208,7 @@ public final class Cutscene {
         k = k * k * (3 - 2 * k);
         Vec3 cam = a.cam().lerp(b.cam(), k), look = a.look().lerp(b.look(), k).subtract(cam);
         float shake = a.shake() + (b.shake() - a.shake()) * k;
+        if (!com.obsidianarsenal.OaConfig.CAMERA_SHAKE.get()) shake = 0;
         if (shake > 0) {                                                       // a rumble for the big hits
             double ph = t * 2.7;
             cam = cam.add(Math.sin(ph * 3.1) * 0.18 * shake, Math.sin(ph * 4.3) * 0.15 * shake, Math.cos(ph * 2.3) * 0.18 * shake);

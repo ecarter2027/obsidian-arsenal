@@ -1,5 +1,23 @@
 # Changelog
 
+## Obsidian Arsenal 1.0.14 + Obsidian EF Compat 1.3.5
+
+### Particles
+- Fire particles are now animated flames that flare up, lick and sway as they rise, then fray away: orange hellfire, violet purple fire, and black flames with a crimson edge for Amaterasu and Kagutsuchi.
+- The triangular shard, chevron, needle and lance particles are replaced by soft glowing streaks, and the void wisp is now a curl of smoke.
+
+### Settings
+- New settings, in game from Mods > Obsidian Arsenal > Config, or in `config/obsidian_arsenal-client.toml` and `obsidian_arsenal-common.toml`:
+  - cutscenes on or off, all at once or spell by spell, plus letterbox bars, HUD hiding, camera shake and zoom
+  - casting circles, spell circles, glow flashes, Black Hole lensing, afterimages, particle amount, scroll descriptions
+  - block destruction, flying debris and a spell damage multiplier
+
+### Fixes
+- Fixed a crash when Amaterasu's black flash appeared.
+
+### Epic Fight compatibility (Obsidian EF Compat 1.3.5)
+- The gauntlet's swing trail is now four thin streaks, one from each fingertip, with any moveset (Dawnday's hookclaws included).
+
 ## Obsidian Arsenal 1.0.13 + Obsidian EF Compat 1.3.3
 
 ### New spells

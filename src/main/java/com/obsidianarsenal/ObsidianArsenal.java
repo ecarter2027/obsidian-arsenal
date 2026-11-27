@@ -36,6 +36,11 @@ public class ObsidianArsenal {
         }
 
         IEventBus bus = FMLJavaModLoadingContext.get().getModEventBus();
+        net.minecraftforge.fml.ModLoadingContext.get().registerConfig(net.minecraftforge.fml.config.ModConfig.Type.CLIENT, OaConfig.CLIENT_SPEC);
+        net.minecraftforge.fml.ModLoadingContext.get().registerConfig(net.minecraftforge.fml.config.ModConfig.Type.COMMON, OaConfig.COMMON_SPEC);
+        net.minecraftforge.fml.DistExecutor.unsafeRunWhenOn(net.minecraftforge.api.distmarker.Dist.CLIENT, () -> () ->
+                net.minecraftforge.fml.ModLoadingContext.get().registerExtensionPoint(net.minecraftforge.client.ConfigScreenHandler.ConfigScreenFactory.class,
+                        () -> new net.minecraftforge.client.ConfigScreenHandler.ConfigScreenFactory((mc, parent) -> new com.obsidianarsenal.client.OaConfigScreen(parent))));
         ModAttributes.ATTRIBUTES.register(bus);   // must precede schools (schools reference these attributes)
         ModSchools.SCHOOLS.register(bus);
         ModItems.ITEMS.register(bus);

@@ -61,7 +61,7 @@ public final class BlackHoleLensRenderer {
 
     @SubscribeEvent
     public static void onRenderLevel(RenderLevelStageEvent e) {
-        if (e.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES || lensShader == null) return;
+        if (e.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES || lensShader == null || !com.obsidianarsenal.OaConfig.BLACK_HOLE_LENS.get()) return;
         Minecraft mc = Minecraft.getInstance();
         PENDING.clear();
         if (mc.level == null) return;

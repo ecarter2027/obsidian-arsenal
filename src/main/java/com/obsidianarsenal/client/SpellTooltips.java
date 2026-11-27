@@ -29,6 +29,7 @@ public final class SpellTooltips {
 
     @SubscribeEvent(priority = EventPriority.LOW)
     public static void tooltip(ItemTooltipEvent e) {
+        if (!com.obsidianarsenal.OaConfig.SCROLL_DESCRIPTIONS.get()) return;
         ItemStack stack = e.getItemStack();
         if (stack.getItem() != ItemRegistry.SCROLL.get() || !ISpellContainer.isSpellContainer(stack)) return;
         ISpellContainer container = ISpellContainer.get(stack);

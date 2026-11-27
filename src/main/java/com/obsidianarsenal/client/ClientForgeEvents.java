@@ -83,7 +83,7 @@ public class ClientForgeEvents {
         for (Player pl : mc.level.players()) {
             if (!(pl instanceof AbstractClientPlayer ap) || !ap.hasEffect(ModEffects.PURPLE_LIGHTNING.get())) continue;
             if (ap.position().distanceToSqr(ap.xo, ap.yo, ap.zo) < 0.02) continue;
-            if (GHOSTS.size() > 160) break;
+            if (GHOSTS.size() > 160 || !com.obsidianarsenal.OaConfig.AFTERIMAGES.get()) break;
             Ghost g = new Ghost();
             g.player = ap;
             g.x = ap.getX(); g.y = ap.getY(); g.z = ap.getZ();

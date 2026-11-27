@@ -181,45 +181,147 @@ def blade(d, pal, r):
 SHAPES = {f.__name__: f for f in (shard, needle, lance, chevron, tri, diamond, star4, star8, cross, bolt, crack, slash, hexplate,
                                   glyph, link, blackflame, blade)}
 
+# ---- v33: animated flames, smoke wisps and soft glowing sparks (replacing the triangular sprites) -----------------
+import numpy as _np
+
+HELL = ((90, 6, 0), (255, 90, 20), (255, 236, 170))          # hellfire: deep red edge, orange body, yellow-white heart
+FRAMES = 8
+
+
+def _rgba(field_rgb, alpha):
+    a = _np.clip(alpha, 0, 1)
+    out = _np.dstack([_np.clip(field_rgb, 0, 255), a * 255]).astype(_np.uint8)
+    return Image.fromarray(out, "RGBA")
+
+
+def _ramp(I, pal, dark=False):
+    """Colour by intensity: edge -> body -> core (dark=True: a glowing rim round a black heart, for black flames)."""
+    o, b, c = (_np.array(x, float) for x in pal)
+    if dark:
+        o, b, c = c, b, o * 0 + _np.array([6, 3, 8], float)    # rim crimson, then black inside
+    I = I[..., None]
+    lo = _np.clip(I / 0.45, 0, 1)
+    hi = _np.clip((I - 0.45) / 0.4, 0, 1)
+    return (o * (1 - lo) + b * lo) * (1 - hi) + c * hi
+
+
+def fire_frames(pal, seed, dark=False, n=FRAMES, S=32, SS=4):
+    """An animated flame: ignites, licks and flickers with rising turbulence, then thins out and breaks off upward."""
+    rr = _np.random.default_rng(seed)
+    N = S * SS
+    ys, xs = _np.mgrid[0:N, 0:N]
+    x = (xs + 0.5) / N * 2 - 1                    # -1..1
+    y = 1 - (ys + 0.5) / N                        # 0 bottom .. 1 top
+    ph = rr.random(6) * 6.283
+    frames = []
+    for k in range(n):
+        f = k / (n - 1)
+        life = [0.45, 0.75, 0.95, 1.0, 1.0, 0.85, 0.62, 0.42][k * 8 // n]
+        H = 0.35 + 0.6 * life                      # tip height
+        W = 0.62 * (0.75 + 0.25 * life)
+        lift = max(0.0, f - 0.6) * 0.6             # breaks off upward at the end
+        v = (y - 0.06 - lift) / H
+        sway = 0.12 * _np.clip(v, 0, 1) ** 1.5 * _np.sin(4.0 * v - k * 0.9 + ph[0]) + 0.03 * _np.sin(9 * v - k * 1.7 + ph[1])
+        xd = x - sway
+        w = W * 1.55 * _np.clip(v, 0, 1) ** 0.45 * _np.clip(1 - v, 0, 1) ** 0.75
+        I = _np.clip(1 - _np.abs(xd) / _np.maximum(w, 1e-3), 0, 1)
+        turb = (0.78 + 0.12 * _np.sin(5 * x + 9 * (y - k * 0.14) + ph[2]) + 0.1 * _np.sin(9 * x - 14 * (y - k * 0.14) + ph[3]))
+        tongues = 1 - 0.55 * _np.clip((v - 0.55) / 0.45, 0, 1) * (0.5 + 0.5 * _np.sin(7 * xd + ph[5] + k * 0.6))
+        I = I * turb * tongues * _np.clip(1.25 - _np.clip(v, 0, 9) ** 2, 0, 1)
+        if f > 0.6:                                # thins and frays as it dies
+            I = I * _np.clip(0.75 + 0.35 * _np.sin(4 * xd + 5 * v + ph[4] + k), 0, 1)
+        I = _np.clip(I * (1.15 if k < 6 else 0.9), 0, 1)
+        alpha = _np.clip((I - 0.06) / 0.2, 0, 1) * (1.0 if k < 6 else 0.8 - 0.2 * (k - 6))
+        img = _rgba(_ramp(I, pal, dark), alpha).resize((S, S), Image.LANCZOS)
+        frames.append(img)
+    return frames
+
+
+def wisp_frames(pal, seed, n=FRAMES, S=32, SS=4):
+    """A curl of smoke that swells, swirls and fades."""
+    rr = _np.random.default_rng(seed)
+    N = S * SS
+    ys, xs = _np.mgrid[0:N, 0:N]
+    x = (xs + 0.5) / N * 2 - 1
+    y = (ys + 0.5) / N * 2 - 1
+    r = _np.hypot(x, y)
+    a = _np.arctan2(y, x)
+    ph = rr.random(4) * 6.283
+    frames = []
+    for k in range(n):
+        f = k / (n - 1)
+        R = 0.5 + 0.45 * f
+        swirl = a + 2.2 * r + k * 0.35
+        lobes = 0.88 + 0.08 * _np.sin(2 * swirl + ph[0]) + 0.05 * _np.sin(5 * swirl - ph[1])
+        I = _np.clip(1 - r / (R * lobes), 0, 1) ** 1.3
+        I = I * (0.85 + 0.15 * _np.sin(10 * r - k + ph[2]))
+        alpha = _np.clip(I * 1.6, 0, 1) * (1 - f) ** 0.7 * 0.9
+        img = _rgba(_ramp(_np.clip(I * (1 - 0.5 * f), 0, 1), pal), alpha).resize((S, S), Image.LANCZOS)
+        frames.append(img)
+    return frames
+
+
+def spark_img(pal, r, S=16, SS=8):
+    """A soft glowing streak: white-hot line with a coloured glow, tapering to the tail (points up, flies tip first)."""
+    N = S * SS
+    ys, xs = _np.mgrid[0:N, 0:N]
+    x = (xs + 0.5) / N * S - S / 2
+    y = (ys + 0.5) / N * S
+    top, bot = r.uniform(1.5, 3.0), r.uniform(12.0, 15.0)
+    v = _np.clip((y - top) / (bot - top), 0, 1)                 # 0 at the tip, 1 at the tail
+    inside = (y >= top - 1.2) & (y <= bot + 0.5)
+    width = 1.5 * (1 - v) ** 0.7 + 0.25
+    tipfade = _np.clip((y - top + 1.2) / 1.6, 0, 1)
+    d = _np.abs(x) / width
+    core = _np.exp(-(d * 1.6) ** 2) * (1 - v) ** 0.35
+    glow = _np.exp(-(d * 0.45) ** 2) * (1 - v) ** 1.1
+    I = _np.clip(core * 1.3 + glow * 0.4, 0, 1) * tipfade * inside
+    alpha = _np.clip(I * 1.5, 0, 1)
+    return _rgba(_ramp(I, pal), alpha).resize((S, S), Image.LANCZOS)
+
+
+ANIMATED = {"fire", "darkfire", "wisp"}
+
+
 # name -> (shape, palette, style). Styles (FxStyle in Java): STREAK flies tip first along its velocity; FLASH pops and
 # spins in place; BOLT flickers for a few ticks; FLAME rises upright; DRIFT hangs and falls slowly.
 FX = {
     # ---- the shared particles, re-drawn sharp (their old names are kept, so every model / entity using them changes)
-    "hellfire_flame": ("tri", CRIMSON, "FLASH"),
-    "amaterasu_flame": ("blackflame", BLACKFIRE, "FLAME"),
-    "purple_flame": ("shard", VIOLET, "STREAK"),
+    "hellfire_flame": ("fire", HELL, "FIRE"),
+    "amaterasu_flame": ("darkfire", BLACKFIRE, "FIRE"),
+    "purple_flame": ("fire", VIOLET, "FIRE"),
     "purple_spark": ("star4", VIOLET, "FLASH"),
     "deep_purple_spark": ("diamond", VOID, "FLASH"),
-    "red_spark": ("needle", CRIMSON, "STREAK"),
+    "red_spark": ("spark", CRIMSON, "STREAK"),
     "plasma_spark": ("star4", PLASMA, "FLASH"),
-    "void_wisp": ("shard", VOID, "STREAK"),
+    "void_wisp": ("wisp", VOID, "WISP"),
     "purple_lightning": ("bolt", LILAC, "BOLT"),
     # ---- Obsidian school signatures
-    "fx_spike_explosion": ("shard", OBSID, "STREAK"),
+    "fx_spike_explosion": ("spark", VIOLET, "STREAK"),
     "fx_storm": ("slash", VIOLET, "FLASH"),
     "fx_tentacles": ("crack", VOID, "DRIFT"),
     "fx_cloak": ("bolt", VIOLET, "BOLT"),
     "fx_shatter": ("diamond", LILAC, "STREAK"),
-    "fx_indra": ("chevron", LILAC, "STREAK"),          # Indra's Arrow: the arrow's purple lightning
+    "fx_indra": ("spark", LILAC, "STREAK"),          # Indra's Arrow: the arrow's purple lightning
     "fx_wall": ("hexplate", OBSID, "FLASH"),
     "fx_kirin": ("bolt", LILAC, "BOLT"),
-    "fx_lance_rain": ("lance", OBSID, "STREAK"),
-    "fx_shard_step": ("needle", VIOLET, "STREAK"),
+    "fx_lance_rain": ("spark", VIOLET, "STREAK"),
+    "fx_shard_step": ("spark", VIOLET, "STREAK"),
     "fx_prison": ("glyph", VIOLET, "FLASH"),
     # ---- Hellfire school signatures
-    "fx_columns": ("tri", BLOOD, "STREAK"),
-    "fx_judgement": ("chevron", CRIMSON, "STREAK"),
+    "fx_columns": ("fire", BLOOD, "FIRE"),
+    "fx_judgement": ("fire", HELL, "FIRE"),
     "fx_gyroscope": ("star8", GOLD, "FLASH"),
-    "fx_amaterasu": ("blackflame", BLACKFIRE, "FLAME"),
+    "fx_amaterasu": ("darkfire", BLACKFIRE, "FIRE"),
     "fx_nova": ("star4", CRIMSON, "STREAK"),
-    "fx_kagutsuchi": ("blade", BLACKFIRE, "STREAK"),
+    "fx_kagutsuchi": ("darkfire", BLACKFIRE, "FIRE"),
     "fx_brand": ("glyph", CRIMSON, "FLASH"),
     "fx_chains": ("link", BLOOD, "STREAK"),
     # ---- Plasma school signatures
-    "fx_beam": ("needle", PLASMA, "STREAK"),
-    "fx_black_hole": ("shard", VOID, "STREAK"),
-    "fx_barrage": ("chevron", PLASMA, "STREAK"),
-    "fx_railgun": ("lance", HOTWHITE, "STREAK"),
+    "fx_beam": ("spark", PLASMA, "STREAK"),
+    "fx_black_hole": ("spark", LILAC, "STREAK"),
+    "fx_barrage": ("spark", PLASMA, "STREAK"),
+    "fx_railgun": ("spark", HOTWHITE, "STREAK"),
     "fx_blink": ("diamond", PLASMA, "FLASH"),
     "fx_ion_storm": ("bolt", HOTWHITE, "BOLT"),
 }
@@ -230,18 +332,27 @@ def main():
     os.makedirs(os.path.join(A, "particles"), exist_ok=True)
     for name, (shape, pal, _) in FX.items():
         r = random.Random(sum(map(ord, name)) * 131)
-        for i in range(3):
-            img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
-            SHAPES[shape](ImageDraw.Draw(img), pal, r)
+        seed = sum(map(ord, name)) * 131
+        if shape in ANIMATED:                      # an animated sequence, played over the particle's life
+            imgs = wisp_frames(pal, seed) if shape == "wisp" else fire_frames(pal, seed, dark=shape == "darkfire")
+        elif shape == "spark":
+            imgs = [spark_img(pal, r) for _ in range(3)]
+        else:
+            imgs = []
+            for _ in range(3):
+                img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+                SHAPES[shape](ImageDraw.Draw(img), pal, r)
+                imgs.append(img)
+        for i in range(max(len(imgs), 12)):        # clear frames left over from older, longer sets
+            p = os.path.join(T, f"{name}_{i}.png")
+            if i >= len(imgs) and os.path.exists(p):
+                os.remove(p)
+        for i, img in enumerate(imgs):
             img.save(os.path.join(T, f"{name}_{i}.png"))
-        # drop the old 4th frame of re-drawn shared particles, if any
-        old = os.path.join(T, f"{name}_3.png")
-        if os.path.exists(old):
-            os.remove(old)
         if os.path.exists(os.path.join(T, f"{name}.png")):
             os.remove(os.path.join(T, f"{name}.png"))
         with open(os.path.join(A, "particles", f"{name}.json"), "w") as f:
-            json.dump({"textures": [f"{MOD}:{name}_{i}" for i in range(3)]}, f, indent=1)
+            json.dump({"textures": [f"{MOD}:{name}_{i}" for i in range(len(imgs))]}, f, indent=1)
     rows = ",\n".join(f'        new Entry("{n}", FxStyle.{s})' for n, (_, _, s) in FX.items())
     with open(JAVA, "w") as f:
         f.write(f"""package com.obsidianarsenal.registry;
@@ -250,7 +361,7 @@ import java.util.List;
 
 /** Generated by tools/gen_fx.py: every particle type and its style (see client/SharpParticle). */
 public final class FxList {{
-    public enum FxStyle {{ STREAK, FLASH, BOLT, FLAME, DRIFT }}
+    public enum FxStyle {{ STREAK, FLASH, BOLT, FLAME, DRIFT, FIRE, WISP }}
 
     public record Entry(String name, FxStyle style) {{}}
 
@@ -260,7 +371,7 @@ public final class FxList {{
     private FxList() {{}}
 }}
 """)
-    print("v27 sharp particles:", len(FX))
+    print("v27/v33 particles (animated fire, wisps, glowing sparks):", len(FX))
 
 
 if __name__ == "__main__":

@@ -37,8 +37,8 @@ public class SpellVisualRenderer extends EntityRenderer<SpellVisualEntity> {
         float t = e.tickCount + pt;
         if (e.kind() == SpellVisualEntity.ORBITAL) orbital(e, t, ps, buf, light);
         else if (e.kind() == SpellVisualEntity.KIRIN) kirin(e, t, ps, buf);
-        else if (e.kind() == SpellVisualEntity.FLASH) flash(e, t, ps, buf);
-        else circle(e, t, ps, buf);
+        else if (e.kind() == SpellVisualEntity.FLASH) { if (com.obsidianarsenal.OaConfig.GLOW_FLASHES.get()) flash(e, t, ps, buf); }
+        else if (com.obsidianarsenal.OaConfig.SPELL_CIRCLES.get()) circle(e, t, ps, buf);
     }
 
     // =========================================================================================== a glowing flash

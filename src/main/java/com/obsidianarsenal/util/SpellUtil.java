@@ -43,7 +43,13 @@ public final class SpellUtil {
      * caster's school spell power was already applied by the spell and the target's school resistance, spell
      * damage events, friendly-fire rules and death messages all come from Iron's Spells.
      */
+    /** Spells may break blocks: the mobGriefing gamerule and the blockDestruction setting both allow it. */
+    public static boolean mayGrief(Level level) {
+        return level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING) && com.obsidianarsenal.OaConfig.BLOCK_DESTRUCTION.get();
+    }
+
     public static boolean spellDamage(AbstractSpell spell, @Nullable Entity direct, @Nullable Entity caster, LivingEntity target, float amount) {
+        amount *= com.obsidianarsenal.OaConfig.DAMAGE_MULTIPLIER.get().floatValue();
         target.invulnerableTime = 0;
         Entity attacker = caster != null ? caster : direct;
         if (attacker == null) return target.hurt(target.damageSources().magic(), amount);
@@ -94,7 +100,7 @@ public final class SpellUtil {
     /** 25 block radius sphere of destruction (blocks removed shell by shell, one shell per tick). */
     /** Blows a crater of the given radius (only with mobGriefing on), shell by shell, with no effects of its own. */
     public static void crater(ServerLevel level, Vec3 c, int radius) {
-        if (!level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) return;
+        if (!com.obsidianarsenal.util.SpellUtil.mayGrief(level)) return;
         BlockPos cb = BlockPos.containing(c);
         for (int shell = 0; shell <= radius; shell++) {
             final int s = shell;
@@ -107,7 +113,7 @@ public final class SpellUtil {
      * blocks flying outward and upward, before a crater swallows the rest (only with mobGriefing on).
      */
     public static void launchDebris(ServerLevel level, Vec3 c, int radius, int count) {
-        if (!level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) return;
+        if (!mayGrief(level) || !com.obsidianarsenal.OaConfig.FLYING_DEBRIS.get()) return;
         var r = level.random;
         for (int i = 0; i < count; i++) {
             double a = r.nextDouble() * Math.PI * 2, d = Math.sqrt(r.nextDouble()) * radius;
@@ -152,7 +158,7 @@ public final class SpellUtil {
             }
         }
 
-        if (!level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) return;
+        if (!com.obsidianarsenal.util.SpellUtil.mayGrief(level)) return;
         BlockPos cb = BlockPos.containing(c);
         for (int shell = 0; shell <= radius; shell++) {
             final int s = shell;

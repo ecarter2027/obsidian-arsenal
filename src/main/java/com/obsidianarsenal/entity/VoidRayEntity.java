@@ -151,7 +151,7 @@ public class VoidRayEntity extends Entity {
      * on, never protected or unbreakable blocks). An unbreakable block on the centre line stops the ray there.
      */
     private void erase(ServerLevel sl, LivingEntity owner) {
-        if (!sl.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) return;
+        if (!com.obsidianarsenal.util.SpellUtil.mayGrief(sl)) return;
         Vec3 eye = owner.getEyePosition(), dir = owner.getLookAngle();
         Vec3 e1 = new Vec3(-dir.z, 0, dir.x);
         if (e1.lengthSqr() < 1e-4) e1 = new Vec3(1, 0, 0);

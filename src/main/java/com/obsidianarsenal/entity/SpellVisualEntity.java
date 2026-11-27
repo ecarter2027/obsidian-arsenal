@@ -54,9 +54,14 @@ public class SpellVisualEntity extends Entity {
      * {@code at}, or raised {@code raise} blocks and facing down (raining spells).
      */
     public static SpellVisualEntity circle(ServerLevel level, int school, Vec3 at, double radius, int life, double raise) {
+        return make(level, CIRCLE, school, at, radius, life, raise);
+    }
+
+    /** Sets every field before the entity is added, so the spawn packet already carries its real kind. */
+    private static SpellVisualEntity make(ServerLevel level, int kind, int school, Vec3 at, double radius, int life, double raise) {
         SpellVisualEntity e = new SpellVisualEntity(ModEntities.SPELL_VISUAL.get(), level);
         e.setPos(at.x, at.y, at.z);
-        e.entityData.set(KIND, CIRCLE);
+        e.entityData.set(KIND, kind);
         e.entityData.set(SCHOOL, school);
         e.entityData.set(RADIUS, (float) radius);
         e.entityData.set(LIFE, life);
@@ -68,9 +73,7 @@ public class SpellVisualEntity extends Entity {
 
     /** A glowing flash at {@code at} (school 0 obsidian / 1 hellfire / 2 plasma / 3 black), radius r, lasting life ticks. */
     public static SpellVisualEntity flash(ServerLevel level, int school, Vec3 at, double r, int life) {
-        SpellVisualEntity e = circle(level, school, at, r, life, 0);
-        e.entityData.set(KIND, FLASH);
-        return e;
+        return make(level, FLASH, school, at, r, life, 0);
     }
 
     public int school() { return entityData.get(SCHOOL); }

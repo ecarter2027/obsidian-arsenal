@@ -185,7 +185,7 @@ public class PlasmaBeamEntity extends Entity implements GeoEntity {
      * spawn protection and protection mods (BlockEvent.BreakEvent); blocks drop as if mined.
      */
     private void breakLine(ServerLevel sl, LivingEntity owner) {
-        if (!sl.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) return;
+        if (!com.obsidianarsenal.util.SpellUtil.mayGrief(sl)) return;
         Vec3 eye = owner.getEyePosition();
         Vec3 dir = owner.getLookAngle();
         BlockPos last = null;

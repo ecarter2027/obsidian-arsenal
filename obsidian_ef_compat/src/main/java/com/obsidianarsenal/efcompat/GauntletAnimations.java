@@ -142,8 +142,28 @@ public final class GauntletAnimations {
       return joint == biped().rootJoint ? List.of(trail("Tool_R", start, end), trail("Tool_L", start, end)) : List.of(trail(joint.getName(), start, end));
    }
 
+   /** The claw's fingertips across the Tool joint (the item skin's trail spans z -0.26..0.26 at y -0.62). */
+   private static final float[] FINGER_Z = {-0.21F, -0.07F, 0.07F, 0.21F};
+
+   /**
+    * Every hand trail becomes four thin streaks, one along each fingertip, instead of one wide ribbon across the claw:
+    * each runs a short way down its finger to the tip, so a rake leaves four parallel claw marks.
+    */
    private static void addTrails(StaticAnimation anim, List<TrailInfo> trails) {
-      anim.addProperty(ClientAnimationProperties.TRAIL_EFFECT, trails);
+      List<TrailInfo> out = new ArrayList<>();
+      for (TrailInfo t : trails) {
+         if (!t.joint().startsWith("Tool")) { out.add(t); continue; }
+         for (int i = 0; i < FINGER_Z.length; i++) {
+            float z = FINGER_Z[i], k = 0.9F + 0.1F * i;
+            out.add(t.unpackAsBuilder()
+               .startPos(new Vec3(0.0, -0.5, z))
+               .endPos(new Vec3(0.0, -0.66, z * 1.08F))
+               .r(0.68F * k).g(0.22F * k).b(1.0F)
+               .itemSkinHand(null)
+               .create());
+         }
+      }
+      anim.addProperty(ClientAnimationProperties.TRAIL_EFFECT, out);
    }
 
    private static Joint joint(String name) {

@@ -296,7 +296,7 @@ public class BlackHoleEntity extends Entity implements GeoEntity {
      * spawn protection and protection mods.
      */
     private void ripBlocks(ServerLevel sl, @Nullable LivingEntity owner, Vec3 c, float f, int tier) {
-        if (f < 0.4f || !sl.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) return;
+        if (f < 0.4f || !com.obsidianarsenal.util.SpellUtil.mayGrief(sl)) return;
         int cap = maxDebris(tier);
         if (debris >= cap) return;
         var r = sl.random;

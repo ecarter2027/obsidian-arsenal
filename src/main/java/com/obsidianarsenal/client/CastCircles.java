@@ -32,7 +32,7 @@ public final class CastCircles {
 
     @SubscribeEvent
     public static void render(RenderLevelStageEvent e) {
-        if (e.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES) return;
+        if (e.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES || !com.obsidianarsenal.OaConfig.CAST_CIRCLES.get()) return;
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) return;
         float pt = e.getPartialTick();

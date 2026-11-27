@@ -269,7 +269,7 @@ public class ErasureOrbEntity extends Entity {
                 }
             }
         }
-        if (!sl.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) return;
+        if (!com.obsidianarsenal.util.SpellUtil.mayGrief(sl)) return;
         int R = (int) Math.ceil(r);
         BlockPos cb = BlockPos.containing(c);
         BlockPos.MutableBlockPos m = new BlockPos.MutableBlockPos();
